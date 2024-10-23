@@ -1,17 +1,17 @@
 <script>  
-  import { LOGO_TEXT } from '$lib/common/const.js';
+  import { JUST_NAME } from '$lib/common/const.js';
 </script>
 
 <div style="max-width: 900px;">
   <div class="pl-1 uppercase text-primary font-bold text-xl">Know Your Assumptions</div>
   <div class="w-full mt-6 mb-4">
-    Mew Tools is a UI for interacting with the Ergo Blockchain.<br /><br />
+    {JUST_NAME} is a UI for interacting with the Ergo Blockchain.<br /><br />
 
     <span class="text-primary font-bold">Notice that:</span>
     <ul>
       <li>- We don't log, collect, profile, share or sell your data.</li>
       <li>
-        - Mew Tools operates on a live blockchain, thus transactions are final, and irreversible once
+        - {JUST_NAME} operates on a live blockchain, thus transactions are final, and irreversible once
         they have status «confirmed».
       </li>
       <li>
