@@ -1,56 +1,55 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    
-    // Goal tracking
+    import { Crownfundingtokenid, recipientAddress } from "$lib/common/const.js";
+
     const TOTAL_GOAL = 500000; // 500k ERG
     
-    // Example statistics
     let stats = {
         ergo: {
-            totalErg: 15420.5,
-            totalRsAda: 45680.75,
-            contributors: 156
+            totalErg: 0,
+            totalRsAda: 0,
+            contributors: 0
         },
         cardano: {
-            totalAda: 89750.25,
-            totalRsErg: 12450.8,
-            contributors: 203
+            totalAda: 0,    // Disabled for now
+            totalRsErg: 0,  // Disabled for now
+            contributors: 0 // Disabled for now
         }
     };
-    
-    // Calculate total ERG (ERG + rsERG)
-    $: totalErgCollected = stats.ergo.totalErg + stats.cardano.totalRsErg;
+
+    $: totalErgCollected = stats.ergo.totalErg;
     $: progressPercentage = (totalErgCollected / TOTAL_GOAL) * 100;
     $: remainingErg = TOTAL_GOAL - totalErgCollected;
-    
-    // Example recent contributions (moved to a store for better reactivity)
-    let recentContributions = [
-        { 
-            time: '2024-02-23 14:32:15', 
-            chain: 'Ergo',
-            token: 'ERG',
-            amount: 100.5,
-            txId: '9f8a2...',
-            status: 'Confirmed'
-        },
-        { 
-            time: '2024-02-23 14:30:05', 
-            chain: 'Cardano',
-            token: 'ADA',
-            amount: 500,
-            txId: 'ae72b...',
-            status: 'Pending'
-        },
-        { 
-            time: '2024-02-23 14:28:45', 
-            chain: 'Ergo',
-            token: 'rsADA',
-            amount: 200.75,
-            txId: '7d23c...',
-            status: 'Confirmed'
+
+    const fetchErgoStats = async () => {
+        try {
+            // Fetch balance for ERG and rsADA
+            const balanceResponse = await fetch(`https://api.ergoplatform.com/api/v1/addresses/${recipientAddress}/balance/confirmed`);
+            const balanceData = await balanceResponse.json();
+
+            // Convert nanoErgs to ERG
+            stats.ergo.totalErg = balanceData.nanoErgs / Math.pow(10, 9);
+
+            // Find rsADA token balance
+            const rsAdaToken = balanceData.tokens.find(token => token.tokenId === Crownfundingtokenid);
+            stats.ergo.totalRsAda = rsAdaToken ? rsAdaToken.amount / Math.pow(10, rsAdaToken.decimals) : 0;
+
+            // Fetch transaction history to count contributors
+            const txResponse = await fetch(`https://api.ergoplatform.com/api/v1/addresses/${recipientAddress}/transactions`);
+            const txData = await txResponse.json();
+
+            // Get total contributors from the 'total' field
+            stats.ergo.contributors = txData.total;
+        } catch (error) {
+            console.error("Error fetching Ergo stats:", error);
         }
-    ];
-    
+    };
+
+    // Fetch stats on mount
+    onMount(() => {
+        fetchErgoStats();
+    });
+
     // Format numbers
     const formatNumber = (num: number) => {
         return num.toLocaleString(undefined, { 
@@ -58,38 +57,13 @@
             maximumFractionDigits: 2 
         });
     };
-    
+
     // Format percentage
     const formatPercentage = (num: number) => {
         return num.toFixed(1);
     };
-    
-    // Simulate live updates with better performance
-    onMount(() => {
-        const interval = setInterval(() => {
-            const newContribution = {
-                time: new Date().toISOString().replace('T', ' ').slice(0, 19),
-                chain: Math.random() > 0.5 ? 'Ergo' : 'Cardano',
-                token: ['ERG', 'rsADA', 'ADA', 'rsERG'][Math.floor(Math.random() * 4)],
-                amount: Math.random() * 1000,
-                txId: Math.random().toString(36).substring(2, 8) + '...',
-                status: Math.random() > 0.3 ? 'Confirmed' : 'Pending'
-            };
-            
-            recentContributions = [newContribution, ...recentContributions.slice(0, 9)];
-            
-            // Update total stats for demo purposes
-            if (newContribution.token === 'ERG') {
-                stats.ergo.totalErg += newContribution.amount;
-            } else if (newContribution.token === 'rsERG') {
-                stats.cardano.totalRsErg += newContribution.amount;
-            }
-        }, 5000);
-    
-        return () => clearInterval(interval);
-    });
-    </script>
-    
+</script>
+
 
 <div class="container top-margin text-white mb-5">
 
@@ -122,7 +96,7 @@
                     </div>
                     <div class="p-4 rounded bg-purple-900/50">
                         <p class="text-yellow-400 text-sm">Total Contributors</p>
-                        <p class="text-2xl font-bold text-white">{stats.ergo.contributors + stats.cardano.contributors}</p>
+                        <p class="text-2xl font-bold text-white">{stats.ergo.contributors}</p>
                     </div>
                 </div>
             </div>
@@ -149,64 +123,24 @@
                 </div>
             </div>
     
-            <!-- Cardano Stats -->
+            <!-- Cardano Stats (Disabled) -->
             <div class="rounded-lg p-6" style="background-color: var(--forms-bg);">
                 <h2 class="text-2xl font-bold text-yellow-400 mb-4">Cardano Chain</h2>
                 <div class="grid grid-cols-1 gap-4">
                     <div class="p-4 rounded bg-purple-900/50">
                         <p class="text-yellow-400 text-sm">Total ADA Collected</p>
-                        <p class="text-2xl font-bold text-white">{formatNumber(stats.cardano.totalAda)} ADA</p>
+                        <p class="text-2xl font-bold text-white">0 ADA</p>
                     </div>
                     <div class="p-4 rounded bg-purple-900/50">
                         <p class="text-yellow-400 text-sm">Total rsERG Collected</p>
-                        <p class="text-2xl font-bold text-white">{formatNumber(stats.cardano.totalRsErg)} rsERG</p>
+                        <p class="text-2xl font-bold text-white">0 rsERG</p>
                     </div>
                     <div class="p-4 rounded bg-purple-900/50">
                         <p class="text-yellow-400 text-sm">Contributors</p>
-                        <p class="text-2xl font-bold text-white">{stats.cardano.contributors}</p>
+                        <p class="text-2xl font-bold text-white">0</p>
                     </div>
                 </div>
             </div>
         </div>
-    
-        <!-- Recent Contributions Table -->
-        <div class="rounded-lg p-6" style="background-color: var(--forms-bg);">
-            <h2 class="text-2xl font-bold text-yellow-400 mb-4">Live Contributions</h2>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr>
-                            <th class="text-left p-3 text-yellow-400 border-b border-purple-700">Time</th>
-                            <th class="text-left p-3 text-yellow-400 border-b border-purple-700">Chain</th>
-                            <th class="text-left p-3 text-yellow-400 border-b border-purple-700">Token</th>
-                            <th class="text-right p-3 text-yellow-400 border-b border-purple-700">Amount</th>
-                            <th class="text-left p-3 text-yellow-400 border-b border-purple-700">Transaction ID</th>
-                            <th class="text-left p-3 text-yellow-400 border-b border-purple-700">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {#each recentContributions as contribution}
-                            <tr class="hover:bg-purple-900/30 transition-colors">
-                                <td class="p-3 text-white">{contribution.time}</td>
-                                <td class="p-3 text-white">{contribution.chain}</td>
-                                <td class="p-3 text-white">{contribution.token}</td>
-                                <td class="p-3 text-white text-right">{formatNumber(contribution.amount)}</td>
-                                <td class="p-3 text-white">{contribution.txId}</td>
-                                <td class="p-3">
-                                    <span class="px-2 py-1 rounded text-sm {contribution.status === 'Confirmed' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}">
-                                        {contribution.status}
-                                    </span>
-                                </td>
-                            </tr>
-                        {/each}
-                    </tbody>
-                </table>
-            </div>
-        </div>
     </div>
-    
 </div>
-
-<style>
-  
-</style>
