@@ -32,7 +32,7 @@ export const sendErgoTx = async (ergoToken: string, ergoAmount: string) => {
                     new OutputBuilder("1000000", recipientAddress) // Minimal ERG for token transfer
                         .addTokens({
                             tokenId: Crownfundingtokenid,
-                            amount: (parseFloat(ergoAmount) * 1e2).toString() // Convert rsADA to its smallest unit (9 decimals)
+                            amount: (parseFloat(ergoAmount) * 1e6).toString() // Convert rsADA to its smallest unit (9 decimals)
                         })
                 );
             }
