@@ -217,6 +217,14 @@ input, textarea, select {
   }
 }
 
+.bg-primary {
+  background: var(--main-color) !important;
+}
+
+.bg-footer {
+  background: var(--footer) !important;
+}
+
 .bg-info {
   background: #3498db !important;
 }
@@ -248,6 +256,10 @@ input, textarea, select {
   text-overflow: ellipsis;
 }
 
+.text-bg {
+  color: var(--background) !important;
+}
+
 .text-light {
   color: var(--text-light) !important;
 }
@@ -268,7 +280,7 @@ input, textarea, select {
   font-family: 'Azeret Mono';
 }
 
-.bg-form {
+.bg-forms {
   background: var(--forms-bg);
 }
 
@@ -302,6 +314,10 @@ a:hover {
 
 input[type="checkbox"] {
   accent-color: var(--main-color);
+}
+
+input:focus, select:focus {
+  border-color: var(--main-color);
 }
 
 .form-check-input:checked {

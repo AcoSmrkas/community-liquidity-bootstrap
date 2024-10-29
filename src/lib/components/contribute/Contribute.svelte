@@ -34,13 +34,13 @@
         <!-- Tab buttons -->
         <div class="flex space-x-4 mb-6">
             <button
-                class="flex-1 px-6 py-2 rounded-lg font-medium transition-colors duration-200 {activeTab === 'ergo' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}"
+                class="flex-1 px-6 py-2 rounded-lg font-medium transition-colors duration-200 {activeTab === 'ergo' ? 'bg-footer text-primary' : 'bg-forms contribute-tab text-gray-300'}"
                 on:click={() => activeTab = 'ergo'}
             >
                 Ergo
             </button>
             <button
-                class="flex-1 px-6 py-2 rounded-lg font-medium transition-colors duration-200 {activeTab === 'cardano' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}"
+                class="flex-1 px-6 py-2 rounded-lg font-medium transition-colors duration-200 {activeTab === 'cardano' ? 'bg-footer text-primary' : 'bg-forms contribute-tab text-gray-300'}"
                 on:click={() => activeTab = 'cardano'}
             >
                 Cardano
@@ -52,10 +52,10 @@
             {#if activeTab === 'ergo'}
                 <form on:submit|preventDefault={handleErgoSubmit} class="space-y-4">
                     <div>
-                        <label class="block text-gray-300 mb-2">Select Token</label>
+                        <label class="block text-gray-300 mb-2">Asset</label>
                         <select
                             bind:value={ergoToken}
-                            class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-purple-500 focus:outline-none"
+                            class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none"
                         >
                             <option value="erg">ERG</option>
                             <option value="rsada">rsADA</option>
@@ -68,14 +68,14 @@
                             bind:value={ergoAmount}
                             min="0"
                             step="0.001"
-                            class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-purple-500 focus:outline-none"
+                            class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none mb-2"
                             placeholder="Enter amount"
                             required
                         />
                     </div>
                     <button
                         type="submit"
-                        class="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200"
+                        class="w-full mt-4 btn btn-primary"
                     >
                         Submit
                     </button>
@@ -83,10 +83,10 @@
             {:else}
                 <form on:submit|preventDefault={handleCardanoSubmit} class="space-y-4">
                     <div>
-                        <label class="block text-gray-300 mb-2">Select Token</label>
+                        <label class="block text-gray-300 mb-2">Asset</label>
                         <select
                             bind:value={cardanoToken}
-                            class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-purple-500 focus:outline-none"
+                            class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none"
                         >
                             <option value="ada">ADA</option>
                             <option value="rserg">rsERG</option>
@@ -99,14 +99,14 @@
                             bind:value={cardanoAmount}
                             min="0"
                             step="0.001"
-                            class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-purple-500 focus:outline-none"
+                            class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none mb-2"
                             placeholder="Enter amount"
                             required
                         />
                     </div>
                     <button
                         type="submit"
-                        class="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200"
+                        class="w-full mt-4 btn btn-primary"
                     >
                         Submit
                     </button>
@@ -115,3 +115,10 @@
         </div>
     </div>
 </div>
+
+<style>
+    .contribute-tab:hover {
+        background: var(--main-color);
+        color: var(--background);
+    }
+</style>

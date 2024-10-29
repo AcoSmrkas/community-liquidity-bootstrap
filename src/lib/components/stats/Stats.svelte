@@ -65,37 +65,37 @@
 </script>
 
 
-<div class="container top-margin text-white mb-5">
+<div class="container top-margin text-white">
 
-    <div class="container mx-auto px-4 py-8 max-w-6xl">
-        <h1 class="text-4xl font-bold text-yellow-400 text-center mb-8">Contribution Statistics</h1>
+    <div class="container mx-auto px-4 max-w-6xl">
+        <h1 class="text-4xl font-bold text-white text-center mb-8">Contribution Statistics</h1>
     
         <!-- Goal Progress Section -->
         <div class="rounded-lg p-6 mb-8" style="background-color: var(--forms-bg);">
-            <h2 class="text-2xl font-bold text-yellow-400 mb-4">Goal Progress</h2>
+            <h2 class="text-2xl font-bold text-primary mb-4">Goal Progress</h2>
             <div class="space-y-4">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-white">Total Collected: {formatNumber(totalErgCollected)} ERG</span>
-                    <span class="text-white">Goal: {formatNumber(TOTAL_GOAL)} ERG</span>
+                    <span class="text-white">Total Collected: {formatNumber(totalErgCollected)} <span class="text-primary font-bold">ERG</span></span>
+                    <span class="text-white">Goal: {formatNumber(TOTAL_GOAL)} <span class="text-primary font-bold">ERG</span></span>
                 </div>
                 <!-- Progress Bar -->
-                <div class="w-full h-4 bg-purple-900/50 rounded-full overflow-hidden">
+                <div class="w-full h-4 bg-footer rounded-full overflow-hidden">
                     <div 
                         class="h-full bg-yellow-400 transition-all duration-500 ease-out"
                         style="width: {Math.min(progressPercentage, 100)}%"
                     ></div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                    <div class="p-4 rounded bg-purple-900/50">
-                        <p class="text-yellow-400 text-sm">Progress</p>
+                    <div class="p-4 rounded bg-footer">
+                        <p class="text-primary text-sm">Progress</p>
                         <p class="text-2xl font-bold text-white">{formatPercentage(progressPercentage)}%</p>
                     </div>
-                    <div class="p-4 rounded bg-purple-900/50">
-                        <p class="text-yellow-400 text-sm">Remaining</p>
-                        <p class="text-2xl font-bold text-white">{formatNumber(remainingErg)} ERG</p>
+                    <div class="p-4 rounded bg-footer">
+                        <p class="text-primary text-sm">Remaining</p>
+                        <p class="text-2xl font-bold text-white">{formatNumber(remainingErg)} <span class="text-primary font-bold">ERG</span></p>
                     </div>
-                    <div class="p-4 rounded bg-purple-900/50">
-                        <p class="text-yellow-400 text-sm">Total Contributors</p>
+                    <div class="p-4 rounded bg-footer">
+                        <p class="text-primary text-sm">Total Contributors</p>
                         <p class="text-2xl font-bold text-white">{stats.ergo.contributors}</p>
                     </div>
                 </div>
@@ -106,18 +106,18 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <!-- Ergo Stats -->
             <div class="rounded-lg p-6" style="background-color: var(--forms-bg);">
-                <h2 class="text-2xl font-bold text-yellow-400 mb-4">Ergo Chain</h2>
+                <h2 class="text-2xl font-bold text-primary mb-4">Ergo Chain</h2>
                 <div class="grid grid-cols-1 gap-4">
-                    <div class="p-4 rounded bg-purple-900/50">
-                        <p class="text-yellow-400 text-sm">Total ERG Collected</p>
-                        <p class="text-2xl font-bold text-white">{formatNumber(stats.ergo.totalErg)} ERG</p>
+                    <div class="p-4 rounded bg-footer">
+                        <p class="text-primary text-sm">Total <span class="text-primary font-bold">ERG</span> Collected</p>
+                        <p class="text-2xl font-bold text-white">{formatNumber(stats.ergo.totalErg)} <span class="text-primary font-bold">ERG</span></p>
                     </div>
-                    <div class="p-4 rounded bg-purple-900/50">
-                        <p class="text-yellow-400 text-sm">Total rsADA Collected</p>
-                        <p class="text-2xl font-bold text-white">{formatNumber(stats.ergo.totalRsAda)} rsADA</p>
+                    <div class="p-4 rounded bg-footer">
+                        <p class="text-primary text-sm">Total <span class="text-primary font-bold">rsADA</span> Collected</p>
+                        <p class="text-2xl font-bold text-white">{formatNumber(stats.ergo.totalRsAda)} <span class="text-primary font-bold">rsADA</span></p>
                     </div>
-                    <div class="p-4 rounded bg-purple-900/50">
-                        <p class="text-yellow-400 text-sm">Contributors</p>
+                    <div class="p-4 rounded bg-footer">
+                        <p class="text-primary text-sm">Contributors</p>
                         <p class="text-2xl font-bold text-white">{stats.ergo.contributors}</p>
                     </div>
                 </div>
@@ -125,18 +125,18 @@
     
             <!-- Cardano Stats (Disabled) -->
             <div class="rounded-lg p-6" style="background-color: var(--forms-bg);">
-                <h2 class="text-2xl font-bold text-yellow-400 mb-4">Cardano Chain</h2>
+                <h2 class="text-2xl font-bold text-primary mb-4">Cardano Chain</h2>
                 <div class="grid grid-cols-1 gap-4">
-                    <div class="p-4 rounded bg-purple-900/50">
-                        <p class="text-yellow-400 text-sm">Total ADA Collected</p>
-                        <p class="text-2xl font-bold text-white">0 ADA</p>
+                    <div class="p-4 rounded bg-footer">
+                        <p class="text-primary text-sm">Total <span class="text-primary font-bold">ADA</span> Collected</p>
+                        <p class="text-2xl font-bold text-white">0 <span class="text-primary font-bold">ADA</span></p>
                     </div>
-                    <div class="p-4 rounded bg-purple-900/50">
-                        <p class="text-yellow-400 text-sm">Total rsERG Collected</p>
-                        <p class="text-2xl font-bold text-white">0 rsERG</p>
+                    <div class="p-4 rounded bg-footer">
+                        <p class="text-primary text-sm">Total <span class="text-primary font-bold">rsERG</span> Collected</p>
+                        <p class="text-2xl font-bold text-white">0 <span class="text-primary font-bold">rsERG</span></p>
                     </div>
-                    <div class="p-4 rounded bg-purple-900/50">
-                        <p class="text-yellow-400 text-sm">Contributors</p>
+                    <div class="p-4 rounded bg-footer">
+                        <p class="text-primary text-sm">Contributors</p>
                         <p class="text-2xl font-bold text-white">0</p>
                     </div>
                 </div>
