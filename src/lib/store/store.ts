@@ -19,7 +19,7 @@ export type UnconfirmedSale = {
   assetTokenId: string | null // New field for buy widget
 }
 
-export const selected_wallet_ergo = writable('');
+export const selected_wallet = writable('');
 export const connected_wallet_address = writable('');
 export const connected_wallet_addresses = writable([]);
 export const utxos = writable([]);

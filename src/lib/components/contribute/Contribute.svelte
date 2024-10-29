@@ -1,10 +1,12 @@
 <script lang="ts">
-    import { sendErgoTx } from "$lib/contract/sendErgoTx.ts"; // Import the Ergo transaction function
+    import { sendErgoTx } from "$lib/contract/sendErgoTx.ts";
     import ErgopayModal from '$lib/components/common/ErgopayModal.svelte';
-    import { selected_wallet_ergo, connected_wallet_address } from "$lib/store/store.ts";	
+    import { selected_wallet, connected_wallet_address
+     } from "$lib/store/store.ts";
     import { fetchBoxes, getBlockHeight, updateTempBoxes } from '$lib/api-explorer/explorer.ts';  
     import { get } from "svelte/store";
-    import { nFormatter, showCustomToast, getConnectedWalletAddress, formatNftUrl, hex2a, getImageUrl, destroy, isWalletConected, setPlaceholderImage, getCommonBoxIds } from '$lib/utils/utils.js';
+    import { showCustomToast, isWalletConected, getCommonBoxIds } from '$lib/utils/utils.js';
+    import { isWalletErgo, isWalletCardano} from '$lib/common/wallet.ts';
 
     let showErgopayModal = false;
     let isAuth = false;
@@ -18,15 +20,14 @@
 
     // Ergo form submission handler
     const handleErgoSubmit = async () => {
-        const selectedWalletErgo = get(selected_wallet_ergo);
+        const selectedWalletErgo = get(selected_wallet);
 
-        if (!isWalletConected()) {
+        if (!isWalletErgo(selectedWalletErgo) || !isWalletConected()) {
             showCustomToast('Connect a wallet.', 1500, 'info');
             return;
         }
 
         console.log("Selected Wallet Ergo:", selectedWalletErgo);
-
 
         if (
             (activeTab == 'ergo' && !ergoAmount)
@@ -40,7 +41,7 @@
         let myAddress, height, utxos;
         unsignedTx = null;
 
-        if ($selected_wallet_ergo != 'ergopay') {
+        if ($selected_wallet != 'ergopay') {
             myAddress = await ergo.get_change_address();
             utxos = await fetchBoxes($connected_wallet_address);
             height = await ergo.get_current_height();
@@ -73,8 +74,6 @@
                 const newOutputs = signed.outputs.filter(output => output.ergoTree == utxos[0].ergoTree);
 
                 updateTempBoxes(myAddress, usedBoxIds, newOutputs);
-
-                closeModal();
             } else {
                 unsignedTx = unsigned;
                 isAuth = false;
@@ -94,12 +93,21 @@
     };
 
     const handleCardanoSubmit = () => {
+        const selectedWalletErgo = get(selected_wallet);
+
+        if (!isWalletCardano(selectedWalletErgo) || !isWalletConected()) {
+            showCustomToast('Connect a wallet.', 1500, 'info');
+            return;
+        }
+
+        console.log("Selected Wallet Ergo:", selectedWalletErgo);
+
         console.log('Cardano submission:', { amount: cardanoAmount, token: cardanoToken });
     };
 </script>
 
 <div class="container top-margin text-white mb-5">
-    <div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="container mx-auto px-0 py-8 max-w-2xl">
         <h1 class="text-4xl font-bold text-white text-center mb-8">Contribute</h1>
 
         <!-- Tab buttons -->

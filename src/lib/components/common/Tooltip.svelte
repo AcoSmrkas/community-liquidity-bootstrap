@@ -1,5 +1,5 @@
 <script>
-    import { selected_wallet_ergo, connected_wallet_address, } from '$lib/store/store.ts';
+    import { selected_wallet, connected_wallet_address, } from '$lib/store/store.ts';
 
     export let message = "";
     export let show = false; // Add a prop to control the visibility
@@ -13,7 +13,7 @@
 
   .tooltip-text {
     visibility: hidden;
-    width: 275px;
+    width: 280px;
     background-color: var(--forms-bg);
     color: #fff;
     text-align: left;
@@ -22,7 +22,7 @@
     position: absolute;
     z-index: 1;
     top: 125%;
-    right: -53px;
+    right: -55px;
     margin-left: -110px;
     opacity: 0;
     transition: opacity 0.3s, visibility 0.3s;
@@ -30,7 +30,7 @@
 
   @media (max-width: 768px) {
     .tooltip-text {
-      right: -110px;
+      right: -55px;
     }
   }
 
@@ -72,7 +72,7 @@
         {/each}
       </ul>
 
-      {#if $selected_wallet_ergo}
+      {#if $selected_wallet}
         <a href="/profile"><button style="margin: 0 auto;" class="my-2 block btn btn-primary border-0">My Profile</button></a>
       {/if}
     </div>

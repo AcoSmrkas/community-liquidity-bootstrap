@@ -1,5 +1,6 @@
 import { get } from 'svelte/store';
-import { selected_wallet_ergo, connected_wallet_address, showPleaseWaitModal } from "$lib/store/store";
+import { selected_wallet, connected_wallet_address, showPleaseWaitModal } from "$lib/store/store";
+import { isWalletCardano, isWalletErgo } from '$lib/common/wallet.ts';
 
 let toastTimeout = null;
 
@@ -43,6 +44,13 @@ function getDecimals(value, additional = 1) {
   }
 
   return decimals;
+}
+
+export async function hexToUtf8(hex) {
+  const bytes = new Uint8Array(
+    hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16))
+  );
+  return new TextDecoder().decode(bytes);
 }
 
 export function nFormatter(num) {
@@ -151,7 +159,7 @@ export function showCustomToast(text, time, type = 'default') {
 }
 
 export async function getConnectedWalletAddress() {
-  const selectedWalletErgo = get(selected_wallet_ergo);
+  const selectedWalletErgo = get(selected_wallet);
   const connectedWalletAddress = get(connected_wallet_address);
 
   if (selectedWalletErgo && selectedWalletErgo != 'ergopay' && window.ergoConnector[selectedWalletErgo]?.isConnected) {
@@ -164,11 +172,16 @@ export async function getConnectedWalletAddress() {
 }
 
 export function isWalletConected() {
-  const selectedWalletErgo = get(selected_wallet_ergo);
+  const selectedWallet = get(selected_wallet);
 
-  return ((selectedWalletErgo && selectedWalletErgo != 'ergopay' && window.ergoConnector[selectedWalletErgo]?.isConnected)
+  if (isWalletErgo(selectedWallet)) {
+  return ((selectedWallet && selectedWallet != 'ergopay'
+    && window.ergoConnector[selectedWallet]?.isConnected)
     ||
-    (selectedWalletErgo && selectedWalletErgo == 'ergopay'));
+    (selectedWallet && selectedWallet == 'ergopay'));
+  } else if (isWalletCardano(selectedWallet)) {
+    return selectedWallet && window.cardano[selectedWallet]?.isEnabled();
+  }
 }
 
 export function formatNftUrl(r9RenderedValue) {

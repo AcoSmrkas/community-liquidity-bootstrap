@@ -1,6 +1,6 @@
 <script lang="ts">
   import { HERO_DESCRIPTION, HERO_IMAGE, LOGO_TEXT } from '$lib/common/const.js';
-  import { offers, selected_wallet_ergo, connected_wallet_address } from "$lib/store/store";
+  import { offers, selected_wallet, connected_wallet_address } from "$lib/store/store";
   import { nFormatter, showCustomToast, getConnectedWalletAddress, isWalletConected } from '$lib/utils/utils.js';
   import { get } from 'svelte/store';
   import { ErgoAddress } from "@fleet-sdk/core";

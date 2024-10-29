@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { selected_wallet_ergo, connected_wallet_address } from '$lib/store/store.js';
+  import { selected_wallet, connected_wallet_address } from '$lib/store/store.js';
   import { sleep, showCustomToast } from "$lib/utils/utils.js";
   import { connectErgoWallet } from "$lib/common/wallet.ts";
   import axios from 'axios';
