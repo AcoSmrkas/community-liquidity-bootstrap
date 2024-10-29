@@ -1,8 +1,15 @@
 <script lang="ts">
-    import { sendErgoTx } from "$lib/contract/sendergtx.ts"; // Import the Ergo transaction function
+    import { sendErgoTx } from "$lib/contract/sendErgoTx.ts"; // Import the Ergo transaction function
     import ErgopayModal from '$lib/components/common/ErgopayModal.svelte';
+    import { selected_wallet_ergo, connected_wallet_address } from "$lib/store/store.ts";	
+    import { fetchBoxes, getBlockHeight, updateTempBoxes } from '$lib/api-explorer/explorer.ts';  
+    import { get } from "svelte/store";
+    import { nFormatter, showCustomToast, getConnectedWalletAddress, formatNftUrl, hex2a, getImageUrl, destroy, isWalletConected, setPlaceholderImage, getCommonBoxIds } from '$lib/utils/utils.js';
 
-    
+    let showErgopayModal = false;
+    let isAuth = false;
+    let unsignedTx = null;
+
     let activeTab = 'ergo';
     let ergoAmount = '';
     let ergoToken = 'erg'; // 'erg' or 'rsada'
@@ -11,14 +18,78 @@
 
     // Ergo form submission handler
     const handleErgoSubmit = async () => {
-        try {
-            console.log('Ergo submission:', { amount: ergoAmount, token: ergoToken });
+        const selectedWalletErgo = get(selected_wallet_ergo);
 
-            // Call the external function to send Ergo transaction
-            const txId = await sendErgoTx(ergoToken, ergoAmount);
-            console.log('Transaction ID:', txId);
-        } catch (error) {
-            console.error('Error during transaction:', error);
+        if (!isWalletConected()) {
+            showCustomToast('Connect a wallet.', 1500, 'info');
+            return;
+        }
+
+        console.log("Selected Wallet Ergo:", selectedWalletErgo);
+
+
+        if (
+            (activeTab == 'ergo' && !ergoAmount)
+            ||
+            (activeTab == 'cardano' && !cardanoAmount)
+        ) {
+            showCustomToast('Please input contribution amount.', 1500, 'info');
+            return;
+        }
+
+        let myAddress, height, utxos;
+        unsignedTx = null;
+
+        if ($selected_wallet_ergo != 'ergopay') {
+            myAddress = await ergo.get_change_address();
+            utxos = await fetchBoxes($connected_wallet_address);
+            height = await ergo.get_current_height();
+        } else {
+            myAddress = get(connected_wallet_address);
+            utxos = await fetchBoxes($connected_wallet_address);
+            height = await getBlockHeight();                  
+        }
+
+        try {
+            let unsigned = null;
+
+            unsigned = await sendErgoTx(
+                myAddress,
+                utxos,
+                ergoToken,
+                ergoAmount,
+                height
+            );
+
+            if (selectedWalletErgo != 'ergopay') {
+                const signed = await ergo.sign_tx(unsigned);
+                const transactionId = await ergo.submit_tx(signed);
+
+                console.log("Transaction ID:", transactionId);
+
+                showCustomToast(`Transaction submitted successfully.<br>TX ID: <a target="_new" href="https://ergexplorer.com/transactions/${transactionId}">${transactionId}</a>`, 5000, 'success');
+
+                const usedBoxIds = getCommonBoxIds(utxos, signed.inputs);
+                const newOutputs = signed.outputs.filter(output => output.ergoTree == utxos[0].ergoTree);
+
+                updateTempBoxes(myAddress, usedBoxIds, newOutputs);
+
+                closeModal();
+            } else {
+                unsignedTx = unsigned;
+                isAuth = false;
+                showErgopayModal = true;
+            }
+        } catch (e) {
+            console.error(e);
+
+            if (e.message && e.message.substr(0, 19) == 'Insufficient inputs') {
+                showCustomToast(`Insufficient funds.`, 5000, 'danger');
+            } else if (e.info && e.info == 'User rejected') {
+                // Handle user rejection
+            } else {
+                showCustomToast(`Failed to submit TX.`, 5000, 'danger');
+            }
         }
     };
 
@@ -115,6 +186,12 @@
         </div>
     </div>
 </div>
+
+{#if showErgopayModal}
+ <ErgopayModal bind:showErgopayModal bind:isAuth bind:unsignedTx>
+   <button slot="btn">Close</button>
+ </ErgopayModal>
+{/if}
 
 <style>
     .contribute-tab:hover {

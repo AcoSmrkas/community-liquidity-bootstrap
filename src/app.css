@@ -312,8 +312,16 @@ a:hover {
   border: 2px solid var(--info-color);
 }
 
+.border-info {
+  border-color: var(--info-color) !important;
+}
+
 input[type="checkbox"] {
   accent-color: var(--main-color);
+}
+
+input, select {
+  border: unset !important;
 }
 
 input:focus, select:focus {
