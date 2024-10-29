@@ -280,7 +280,7 @@ input, textarea, select {
   font-family: 'Azeret Mono';
 }
 
-.bg-forms {
+.bg-form {
   background: var(--forms-bg);
 }
 

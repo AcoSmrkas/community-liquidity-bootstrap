@@ -34,13 +34,13 @@
         <!-- Tab buttons -->
         <div class="flex space-x-4 mb-6">
             <button
-                class="flex-1 px-6 py-2 rounded-lg font-medium transition-colors duration-200 {activeTab === 'ergo' ? 'bg-footer text-primary' : 'bg-forms contribute-tab text-gray-300'}"
+                class="flex-1 px-6 py-2 rounded-lg font-medium transition-colors duration-200 {activeTab === 'ergo' ? 'bg-footer text-primary' : 'bg-form contribute-tab text-gray-300'}"
                 on:click={() => activeTab = 'ergo'}
             >
                 Ergo
             </button>
             <button
-                class="flex-1 px-6 py-2 rounded-lg font-medium transition-colors duration-200 {activeTab === 'cardano' ? 'bg-footer text-primary' : 'bg-forms contribute-tab text-gray-300'}"
+                class="flex-1 px-6 py-2 rounded-lg font-medium transition-colors duration-200 {activeTab === 'cardano' ? 'bg-footer text-primary' : 'bg-form contribute-tab text-gray-300'}"
                 on:click={() => activeTab = 'cardano'}
             >
                 Cardano
