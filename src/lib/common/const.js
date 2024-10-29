@@ -16,3 +16,6 @@ export const HERO_IMAGE = 'https://crooks-fi.com/images/mascot-splash.png';
 //Dev
 export const API_HOST = 'https://api.mewfinance.com/';
 export const DEV_PK    = '9f9ApDfCA7BcPEoSQKgFzsTdBmdV31hLxoWZt4wJgcwr7mtQ6qp';
+// const.js
+export const recipientAddress = "9hq7R1zrrUAmLp2Row7tMJwXhFYxSQf2Zn8UDrN6zJhzNQnnPiF";
+export const Crownfundingtokenid = "e023c5f382b6e96fbd878f6811aac73345489032157ad5affb84aefd4956c297"; // Token ID for rsADA
