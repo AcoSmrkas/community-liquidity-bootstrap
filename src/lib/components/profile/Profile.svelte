@@ -76,12 +76,10 @@
     --text-muted: #1c1529;
   }
 </style>
-<div class="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto">
-        <!-- Header -->
-        <div class="text-center mb-12">
-            <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4">Profile Dashboard</h1>
-            <p class="text-gray-400 text-lg">Track your contributions and rewards</p>
+<div class="container top-margin text-white mb-5">
+    <div class="container mx-auto px-0 py-8 max-w-2xl">
+        <h1 class="text-4xl font-bold text-white text-center mb-8">Profile</h1>
+            <p class="text-gray-400 text-lg text-center">Track your contributions and rewards</p>
         </div>
 
         {#if loading}
@@ -150,7 +148,7 @@
                                 {formatPercentage(poolSharePercentage)}%
                             </div>
                             <div class="w-full bg-gray-600 rounded-full h-2 mt-2">
-                                <div class="bg-blue-500 h-2 rounded-full" style="width: {poolSharePercentage}%"></div>
+                                <div class="bg-info h-2 rounded-full" style="width: {poolSharePercentage}%"></div>
                             </div>
                         </div>
                     </div>
@@ -158,4 +156,3 @@
             </div>
         {/if}
     </div>
-</div>
