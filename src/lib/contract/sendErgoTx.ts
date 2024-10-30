@@ -22,12 +22,12 @@ export async function sendErgoTx(
       ergValue,
       RECIPIENT_ADDRESS_ERGO
     );
-//e023c5f382b6e96fbd878f6811aac73345489032157ad5affb84aefd4956c297
+    
     if (asset == "rsada") {
       sendBox.addTokens(new TokensCollection(
         [{
           tokenId: CF_TOKEN_ID,
-          amount: new BigNumber(amount).times(10 ** 4)
+          amount: new BigNumber(amount).times(10 ** 6)
         }]            
       ));
     }

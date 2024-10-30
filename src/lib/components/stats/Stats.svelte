@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { CF_TOKEN_ID, RECIPIENT_ADDRESS } from "$lib/common/const.js";
+    import { CF_TOKEN_ID, RECIPIENT_ADDRESS_ERGO } from "$lib/common/const.js";
 
     const TOTAL_GOAL = 500000; // 500k ERG
     
@@ -24,7 +24,7 @@
     const fetchErgoStats = async () => {
         try {
             // Fetch balance for ERG and rsADA
-            const balanceResponse = await fetch(`https://api.ergoplatform.com/api/v1/addresses/${RECIPIENT_ADDRESS}/balance/confirmed`);
+            const balanceResponse = await fetch(`https://api.ergoplatform.com/api/v1/addresses/${RECIPIENT_ADDRESS_ERGO}/balance/confirmed`);
             const balanceData = await balanceResponse.json();
 
             // Convert nanoErgs to ERG
@@ -35,7 +35,7 @@
             stats.ergo.totalRsAda = rsAdaToken ? rsAdaToken.amount / Math.pow(10, rsAdaToken.decimals) : 0;
 
             // Fetch transaction history to count contributors
-            const txResponse = await fetch(`https://api.ergoplatform.com/api/v1/addresses/${RECIPIENT_ADDRESS}/transactions`);
+            const txResponse = await fetch(`https://api.ergoplatform.com/api/v1/addresses/${RECIPIENT_ADDRESS_ERGO}/transactions`);
             const txData = await txResponse.json();
 
             // Get total contributors from the 'total' field
