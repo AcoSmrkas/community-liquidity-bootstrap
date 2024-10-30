@@ -7,6 +7,9 @@
     import { get } from "svelte/store";
     import { showCustomToast, isWalletConected, getCommonBoxIds } from '$lib/utils/utils.js';
     import { isWalletErgo, isWalletCardano} from '$lib/common/wallet.ts';
+    import { RECIPIENT_ADDRESS_CARDANO } from '$lib/common/const.js';
+    import { Lucid, Blockfrost, fromText } from "@lucid-evolution/lucid";
+	import BigNumber from "bignumber.js";
 
     let showErgopayModal = false;
     let isAuth = false;
@@ -23,17 +26,13 @@
         const selectedWalletErgo = get(selected_wallet);
 
         if (!isWalletErgo(selectedWalletErgo) || !isWalletConected()) {
-            showCustomToast('Connect a wallet.', 1500, 'info');
+            showCustomToast('Connect a Ergo wallet.', 1500, 'info');
             return;
         }
 
         console.log("Selected Wallet Ergo:", selectedWalletErgo);
 
-        if (
-            (activeTab == 'ergo' && !ergoAmount)
-            ||
-            (activeTab == 'cardano' && !cardanoAmount)
-        ) {
+        if (!ergoAmount) {
             showCustomToast('Please input contribution amount.', 1500, 'info');
             return;
         }
@@ -92,18 +91,79 @@
         }
     };
 
-    const handleCardanoSubmit = () => {
+    const handleCardanoSubmit = async () => {
         const selectedWalletErgo = get(selected_wallet);
 
         if (!isWalletCardano(selectedWalletErgo) || !isWalletConected()) {
-            showCustomToast('Connect a wallet.', 1500, 'info');
+            showCustomToast('Connect a Cardano wallet.', 1500, 'info');
             return;
         }
 
-        console.log("Selected Wallet Ergo:", selectedWalletErgo);
+        console.log("Selected Wallet Cardano:", selectedWalletErgo);
 
-        console.log('Cardano submission:', { amount: cardanoAmount, token: cardanoToken });
+        if (!cardanoAmount) {
+            showCustomToast('Please input contribution amount.', 1500, 'info');
+            return;
+        }
+
+        const transactionId =await sendAda($selected_wallet, cardanoToken, cardanoAmount);
+
+        if (transactionId) {
+            showCustomToast(`Transaction submitted successfully.<br>TX ID: <a target="_new" href="https://cexplorer.io/tx/${transactionId}">${transactionId}</a>`, 5000, 'success');
+        }
     };
+
+    async function sendAda(walletName, asset, amount) {
+        try {
+            const lucid = await Lucid(
+                new Blockfrost(
+                    "https://cardano-mainnet.blockfrost.io/api/v0", "mainnetKDqLJpkxQiZak5FPBG0BN2KHJHr6HYhC"),
+                "Mainnet"
+            );
+
+            const api = await window.cardano[walletName].enable();
+            lucid.selectWallet.fromAPI(api);
+            
+            let tx = null;
+            if (asset == 'ada') {
+                let lovelaceAmount = new BigNumber(amount).times(10 ** 6);
+                tx = await lucid
+                    .newTx()
+                    .pay.ToAddress(RECIPIENT_ADDRESS_CARDANO, { lovelace: lovelaceAmount })
+                    .complete();
+            } else {
+                const policyId = "04b95368393c821f180deee8229fbd941baaf9bd748ebcdbf7adbb14";
+                const assetName = "rsERG";
+
+                tx = await lucid
+                    .newTx()
+                    .pay.ToAddress(RECIPIENT_ADDRESS_CARDANO, { [policyId + fromText(assetName)]: amount })
+                    .complete();
+            }
+
+            const signedTx = await tx.sign.withWallet().complete();
+            const txHash = await signedTx.submit();
+
+            return txHash;
+        } catch (e) {
+            console.error(e);
+
+            let userDecline = false;
+            try {
+                userDecline = JSON.parse(JSON.stringify(e)).cause.failure.cause.code == 2;
+            } catch (ex) { }
+
+            if (!userDecline) {
+                if (e.message && e.message.substr(0, 50) == '{ Complete: Your wallet does not have enough funds') {
+                    showCustomToast(`Insufficient funds.`, 5000, 'danger');
+                } else {
+                    showCustomToast(`Failed to submit TX.`, 5000, 'danger');
+                }
+            }
+
+            return null;   
+        }
+    }
 </script>
 
 <div class="container top-margin text-white mb-5">

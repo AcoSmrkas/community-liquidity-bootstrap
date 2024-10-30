@@ -1,6 +1,6 @@
 // sendErgoTx.ts
 import { OutputBuilder, TransactionBuilder, TokensCollection, SAFE_MIN_BOX_VALUE, ErgoAddress, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
-import { RECIPIENT_ADDRESS, CF_TOKEN_ID } from "$lib/common/const.js";
+import { RECIPIENT_ADDRESS_ERGO, CF_TOKEN_ID } from "$lib/common/const.js";
 import { BigNumber } from 'bignumber.js';
 
 export async function sendErgoTx(
@@ -20,7 +20,7 @@ export async function sendErgoTx(
 
     const sendBox = new OutputBuilder(
       ergValue,
-      RECIPIENT_ADDRESS
+      RECIPIENT_ADDRESS_ERGO
     );
 //e023c5f382b6e96fbd878f6811aac73345489032157ad5affb84aefd4956c297
     if (asset == "rsada") {
