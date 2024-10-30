@@ -289,31 +289,8 @@
             </div>
           </button>          
         {/if}
-        {#if isMobileDevice() && (!window.cardano || !window.cardano['vespr'])}
-          <a
-            href="https://vespr.xyz"
-            target="blank_"
-            style="height: 50px;text-wrap:nowrap;"
-            class="w-full flex justify-center items-center btn btn-primary mb-3 install-naut"
-          >
-            <img style="height: 1.4em; width: 1.4em;" src="/wallets/vespr.png" alt="" />
-            <div> Install Vespr</div>
-          </a>
-        {:else if isMobileDevice()}
-          <button
-            on:click={() => {clickOnWalletButton('vespr')}}
-            class:grayscale={!window.cardano['vespr']}
-            class="w-full flex justify-center items-center btn btn-primary mb-3"
-          >
-
-            <img style="height: 1.4em; width: 1.4em;margin-right:3px;" src="/wallets/vespr.png" alt="" />
-            <div class="flex justify-center">
-              {#if $selected_wallet == 'vespr'}
-                Disconnect
-              {/if}
-              Vespr
-            </div>
-          </button>          
+        {#if isMobileDevice()}
+          <p>No supported wallet found.</p>        
         {/if}
       </div>
       {/if}
