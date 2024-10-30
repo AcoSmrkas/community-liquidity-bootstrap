@@ -63,7 +63,7 @@
   }
 </style>
 
-  <div class="tooltip-container" style="font-family:'Manrope';" data-show={show} onclick="event.stopPropagation()">
+  <div class="tooltip-container" style="font-family:'Manrope';" data-show={show} on:click={event.stopPropagation}>
     <slot></slot>
   <div class="tooltip-text border-2 border-teal-300">
       <ul>

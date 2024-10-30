@@ -1,5 +1,4 @@
-import JSONbig from 'json-bigint';
-import { totalBoxes } from "$lib/store/store";
+import * as JSONbig from 'json-bigint';
 import axios from 'axios';
 
 var lastOutputBoxes = {};
