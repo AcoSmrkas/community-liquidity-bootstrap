@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { CF_TOKEN_ID, RECIPIENT_ADDRESS_ERGO } from "$lib/common/const.js";
+    import { RSADA_TOKEN_ID, RECIPIENT_ADDRESS_ERGO } from "$lib/common/const.js";
 
     const TOTAL_GOAL = 500000; // 500k ERG
     
@@ -31,7 +31,7 @@
             stats.ergo.totalErg = balanceData.nanoErgs / Math.pow(10, 9);
 
             // Find rsADA token balance
-            const rsAdaToken = balanceData.tokens.find(token => token.tokenId === CF_TOKEN_ID);
+            const rsAdaToken = balanceData.tokens.find(token => token.tokenId === RSADA_TOKEN_ID);
             stats.ergo.totalRsAda = rsAdaToken ? rsAdaToken.amount / Math.pow(10, rsAdaToken.decimals) : 0;
 
             // Fetch transaction history to count contributors

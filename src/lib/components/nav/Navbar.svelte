@@ -62,7 +62,7 @@
       <li class="text-lg {pageName == 'stats' ? 'active' : ''}"><a href="./stats">Stats</a></li>
     </ul>
     <div class="flex items-center gap-4" style="margin-left: auto;flex: 0 1 auto; /* Allow items to have their natural widths */">
-      
+      <WalletButton />
       <button type="button" aria-label="Toggle Navigation" on:click={toggleNav} class="d-block d-md-none navbar-toggler text-4xl"><i class="fa-solid fa-bars cursor-pointer"></i></button>
     </div>
   </div>

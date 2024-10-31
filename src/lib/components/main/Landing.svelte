@@ -31,6 +31,8 @@
           {@html LOGO_TEXT}
         </h1>
         <p class="mb-9 mt-8 text-light lg:mb-8 md:text-lg lg:text-md py-2" style="font-family:'Azeret Mono'; ">{@html HERO_DESCRIPTION}<br></p>
+        <a href="contribute"><button class="btn btn-primary"
+          style="padding:10px 25px !important;font-size:1.15rem !important;">Contribute</button></a>
       </div>
     </div>
   </section>

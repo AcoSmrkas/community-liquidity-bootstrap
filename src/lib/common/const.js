@@ -1,10 +1,3 @@
-export const ERG_MINT_FEE = 1000000;	// 0.4 ERG
-export const ERG_BURN_FEE = 100000000;	// 0.1 ERG
-export const ERG_CONSOLIDATE_FEE = 1000000;	// 0.001 ERG
-export const ERG_AIRDROP_FEE = 10000000;	// 0.01 ERG
-export const ERG_AIRDROP_FIX_FEE = 500000000;	// 0.5 ERG
-export const MIN_ERG_VAL = 1000000;		// 0.001 ERG
-
 //landing page and header navbar
 export const MART_NAME = 'MewCLB';
 export const JUST_NAME = 'Mew CLB';
@@ -16,7 +9,9 @@ export const HERO_IMAGE = 'https://crooks-fi.com/images/mascot-splash.png';
 //Dev
 export const API_HOST = 'https://api.mewfinance.com/';
 export const DEV_PK    = '9f9ApDfCA7BcPEoSQKgFzsTdBmdV31hLxoWZt4wJgcwr7mtQ6qp';
-// const.js
+export const BLOCKFROST_PROJECT_ID = 'mainnetKDqLJpkxQiZak5FPBG0BN2KHJHr6HYhC';
+
 export const RECIPIENT_ADDRESS_CARDANO = 'addr1q82946608zxkl8v2juvgptrkp64hktzs57m8rkffd42mpd3x27743ccqz5v5uvsqttwhm9el0wyqrl9nt3gchg69scgss5lul0';
 export const RECIPIENT_ADDRESS_ERGO = "9hq7R1zrrUAmLp2Row7tMJwXhFYxSQf2Zn8UDrN6zJhzNQnnPiF";
-export const CF_TOKEN_ID = "e023c5f382b6e96fbd878f6811aac73345489032157ad5affb84aefd4956c297"; // Token ID for rsADA
+export const RSADA_TOKEN_ID = "e023c5f382b6e96fbd878f6811aac73345489032157ad5affb84aefd4956c297";
+export const RSERG_POLICY_ID = "04b95368393c821f180deee8229fbd941baaf9bd748ebcdbf7adbb14";

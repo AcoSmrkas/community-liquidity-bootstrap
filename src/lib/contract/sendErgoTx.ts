@@ -1,5 +1,5 @@
 import { OutputBuilder, TransactionBuilder, TokensCollection, SAFE_MIN_BOX_VALUE, ErgoAddress, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
-import { RECIPIENT_ADDRESS_ERGO, CF_TOKEN_ID } from "$lib/common/const.js";
+import { RECIPIENT_ADDRESS_ERGO, RSADA_TOKEN_ID } from "$lib/common/const.js";
 import { BigNumber } from 'bignumber.js';
 
 export async function sendErgoTx(
@@ -13,7 +13,7 @@ export async function sendErgoTx(
   
     let ergValue = SAFE_MIN_BOX_VALUE;
   
-    if (asset == "erg") {
+    if (asset == "ERG") {
       ergValue = new BigNumber(amount).times(10 ** 9);
     }
 
@@ -22,10 +22,10 @@ export async function sendErgoTx(
       RECIPIENT_ADDRESS_ERGO
     );
     
-    if (asset == "rsada") {
+    if (asset == "rsADA") {
       sendBox.addTokens(new TokensCollection(
         [{
-          tokenId: CF_TOKEN_ID,
+          tokenId: RSADA_TOKEN_ID,
           amount: new BigNumber(amount).times(10 ** 6)
         }]            
       ));

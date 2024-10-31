@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { RECIPIENT_ADDRESS_ERGO, CF_TOKEN_ID } from "$lib/common/const.js";
+  import { RECIPIENT_ADDRESS_ERGO, RSADA_TOKEN_ID } from "$lib/common/const.js";
 
   // Constants
   const RSN_PER_WERG = 2; 
@@ -36,7 +36,7 @@
           
           stats.ergo.totalErg = balanceData.nanoErgs / Math.pow(10, 9);
           
-          const rsAdaToken = balanceData.tokens.find(token => token.tokenId === CF_TOKEN_ID);
+          const rsAdaToken = balanceData.tokens.find(token => token.tokenId === RSADA_TOKEN_ID);
           stats.ergo.totalRsAda = rsAdaToken ? rsAdaToken.amount / Math.pow(10, rsAdaToken.decimals) : 0;
 
           const txResponse = await fetch(`https://api.ergoplatform.com/api/v1/addresses/${RECIPIENT_ADDRESS_ERGO}/transactions`);

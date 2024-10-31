@@ -16,9 +16,9 @@
 
     let activeTab = 'ergo';
     let ergoAmount = '';
-    let ergoToken = 'erg'; // 'erg' or 'rsada'
+    let ergoToken = 'ERG'; // 'ERG' or 'rsADA'
     let cardanoAmount = '';
-    let cardanoToken = 'ada'; // 'ada' or 'rserg'
+    let cardanoToken = 'ADA'; // 'ADA' or 'rsERG'
 
     // Ergo form submission handler
     const handleErgoSubmit = async () => {
@@ -189,8 +189,8 @@
                             bind:value={ergoToken}
                             class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none"
                         >
-                            <option value="erg">ERG</option>
-                            <option value="rsada">rsADA</option>
+                            <option value="ERG">ERG</option>
+                            <option value="rsADA">rsADA</option>
                         </select>
                     </div>
                     <div>
@@ -220,8 +220,8 @@
                             bind:value={cardanoToken}
                             class="w-full px-4 py-2 rounded-lg bg-gray-700 text-white border border-gray-600 focus:outline-none"
                         >
-                            <option value="ada">ADA</option>
-                            <option value="rserg">rsERG</option>
+                            <option value="ADA">ADA</option>
+                            <option value="rsERG">rsERG</option>
                         </select>
                     </div>
                     <div>

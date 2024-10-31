@@ -1,12 +1,14 @@
 
-import { RECIPIENT_ADDRESS_CARDANO } from '$lib/common/const.js';
+import { RECIPIENT_ADDRESS_CARDANO, RSERG_POLICY_ID, BLOCKFROST_PROJECT_ID } from '$lib/common/const.js';
 import { Lucid, Blockfrost, fromText } from "@lucid-evolution/lucid";
 import BigNumber from "bignumber.js";
 
 export async function sendCardanoTx(walletName, asset, amount) {
     const lucid = await Lucid(
         new Blockfrost(
-            "https://cardano-mainnet.blockfrost.io/api/v0", "mainnetKDqLJpkxQiZak5FPBG0BN2KHJHr6HYhC"),
+            "https://cardano-mainnet.blockfrost.io/api/v0",
+            BLOCKFROST_PROJECT_ID
+        ),
         "Mainnet"
     );
 
@@ -14,7 +16,7 @@ export async function sendCardanoTx(walletName, asset, amount) {
     lucid.selectWallet.fromAPI(api);
     
     let tx;
-    if (asset == 'ada') {
+    if (asset == 'ADA') {
         const lovelaceAmount = new BigNumber(amount).times(10 ** 6);
 
         tx = await lucid
@@ -25,7 +27,7 @@ export async function sendCardanoTx(walletName, asset, amount) {
             )
             .complete();
     } else {
-        const policyId = "04b95368393c821f180deee8229fbd941baaf9bd748ebcdbf7adbb14";
+        const policyId = RSERG_POLICY_ID;
         const assetName = "rsERG";
 
         tx = await lucid
