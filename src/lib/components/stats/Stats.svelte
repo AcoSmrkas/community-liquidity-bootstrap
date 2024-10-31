@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import { API_HOST } from '$lib/common/const.js';
     import axios from 'axios';
+    import LatestContributions from '$lib/components/stats/LatestContributions.svelte';
     
     let loading = true;
     let stats = {
@@ -99,5 +100,6 @@
             </div>
         </div>
         {/if}
+        <LatestContributions />
     </div>
 </div>
