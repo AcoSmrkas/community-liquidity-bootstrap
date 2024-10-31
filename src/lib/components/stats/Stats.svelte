@@ -65,11 +65,11 @@
                 <h2 class="text-2xl font-bold text-white mb-4">Ergo</h2>
                 <div class="grid grid-cols-1 gap-4">
                     <div class="p-4 rounded bg-footer">
-                        <p class="text-gray-400 text-sm">Total <span class="text-primary font-bold">ERG</span> Collected</p>
+                        <p class="text-gray-400 text-sm">Total <span class="text-primary font-bold">ERG</span> collected</p>
                         <p class="text-2xl font-bold text-white">{formatNumber(stats.ergo.totalErg)} <span class="text-primary font-bold">ERG</span></p>
                     </div>
                     <div class="p-4 rounded bg-footer">
-                        <p class="text-gray-400 text-sm">Total <span class="text-primary font-bold">rsADA</span> Collected</p>
+                        <p class="text-gray-400 text-sm">Total <span class="text-primary font-bold">rsADA</span> collected</p>
                         <p class="text-2xl font-bold text-white">{formatNumber(stats.ergo.totalRsAda)} <span class="text-primary font-bold">rsADA</span></p>
                     </div>
                     <div class="p-4 rounded bg-footer">
@@ -84,11 +84,11 @@
                 <h2 class="text-2xl font-bold text-white mb-4">Cardano</h2>
                 <div class="grid grid-cols-1 gap-4">
                     <div class="p-4 rounded bg-footer">
-                        <p class="text-gray-400 text-sm">Total <span class="text-primary font-bold">ADA</span> Collected</p>
+                        <p class="text-gray-400 text-sm">Total <span class="text-primary font-bold">ADA</span> collected</p>
                         <p class="text-2xl font-bold text-white">{formatNumber(stats.cardano.totalAda)} <span class="text-primary font-bold">ADA</span></p>
                     </div>
                     <div class="p-4 rounded bg-footer">
-                        <p class="text-gray-400 text-sm">Total <span class="text-primary font-bold">rsERG</span> Collected</p>
+                        <p class="text-gray-400 text-sm">Total <span class="text-primary font-bold">rsERG</span> collected</p>
                         <p class="text-2xl font-bold text-white">{formatNumber(stats.cardano.totalRsErg)} <span class="text-primary font-bold">rsERG</span></p>
                     </div>
                     <div class="p-4 rounded bg-footer">
