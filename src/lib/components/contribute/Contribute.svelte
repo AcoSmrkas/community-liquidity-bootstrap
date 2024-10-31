@@ -1,15 +1,12 @@
 <script lang="ts">
     import { sendErgoTx } from "$lib/contract/sendErgoTx.ts";
+    import { sendCardanoTx } from "$lib/contract/sendCardanoTx.ts";
     import ErgopayModal from '$lib/components/common/ErgopayModal.svelte';
-    import { selected_wallet, connected_wallet_address
-     } from "$lib/store/store.ts";
+    import { selected_wallet, connected_wallet_address } from "$lib/store/store.ts";
     import { fetchBoxes, getBlockHeight, updateTempBoxes } from '$lib/api-explorer/explorer.ts';  
     import { get } from "svelte/store";
     import { showCustomToast, isWalletConected, getCommonBoxIds } from '$lib/utils/utils.js';
     import { isWalletErgo, isWalletCardano} from '$lib/common/wallet.ts';
-    import { RECIPIENT_ADDRESS_CARDANO } from '$lib/common/const.js';
-    import { Lucid, Blockfrost, fromText } from "@lucid-evolution/lucid";
-	import BigNumber from "bignumber.js";
 
     let showErgopayModal = false;
     let isAuth = false;
@@ -67,12 +64,14 @@
 
                 console.log("Transaction ID:", transactionId);
 
-                showCustomToast(`Transaction submitted successfully.<br>TX ID: <a target="_new" href="https://ergexplorer.com/transactions/${transactionId}">${transactionId}</a>`, 5000, 'success');
+                if (transactionId) {
+                    showCustomToast(`Transaction submitted successfully.<br>TX ID: <a target="_new" href="https://ergexplorer.com/transactions/${transactionId}">${transactionId}</a>`, 5000, 'success');
 
-                const usedBoxIds = getCommonBoxIds(utxos, signed.inputs);
-                const newOutputs = signed.outputs.filter(output => output.ergoTree == utxos[0].ergoTree);
+                    const usedBoxIds = getCommonBoxIds(utxos, signed.inputs);
+                    const newOutputs = signed.outputs.filter(output => output.ergoTree == utxos[0].ergoTree);
 
-                updateTempBoxes(myAddress, usedBoxIds, newOutputs);
+                    updateTempBoxes(myAddress, usedBoxIds, newOutputs);
+                }
             } else {
                 unsignedTx = unsigned;
                 isAuth = false;
@@ -106,45 +105,14 @@
             return;
         }
 
-        const transactionId =await sendAda($selected_wallet, cardanoToken, cardanoAmount);
-
-        if (transactionId) {
-            showCustomToast(`Transaction submitted successfully.<br>TX ID: <a target="_new" href="https://cexplorer.io/tx/${transactionId}">${transactionId}</a>`, 5000, 'success');
-        }
-    };
-
-    async function sendAda(walletName, asset, amount) {
         try {
-            const lucid = await Lucid(
-                new Blockfrost(
-                    "https://cardano-mainnet.blockfrost.io/api/v0", "mainnetKDqLJpkxQiZak5FPBG0BN2KHJHr6HYhC"),
-                "Mainnet"
-            );
+            const unsigned = await sendCardanoTx($selected_wallet, cardanoToken, cardanoAmount);
+            const signed = await unsigned.sign.withWallet().complete();
+            const transactionId = await signed.submit();
 
-            const api = await window.cardano[walletName].enable();
-            lucid.selectWallet.fromAPI(api);
-            
-            let tx = null;
-            if (asset == 'ada') {
-                let lovelaceAmount = new BigNumber(amount).times(10 ** 6);
-                tx = await lucid
-                    .newTx()
-                    .pay.ToAddress(RECIPIENT_ADDRESS_CARDANO, { lovelace: lovelaceAmount })
-                    .complete();
-            } else {
-                const policyId = "04b95368393c821f180deee8229fbd941baaf9bd748ebcdbf7adbb14";
-                const assetName = "rsERG";
-
-                tx = await lucid
-                    .newTx()
-                    .pay.ToAddress(RECIPIENT_ADDRESS_CARDANO, { [policyId + fromText(assetName)]: amount })
-                    .complete();
+            if (transactionId) {
+                showCustomToast(`Transaction submitted successfully.<br>TX ID: <a target="_new" href="https://cexplorer.io/tx/${transactionId}">${transactionId}</a>`, 5000, 'success');
             }
-
-            const signedTx = await tx.sign.withWallet().complete();
-            const txHash = await signedTx.submit();
-
-            return txHash;
         } catch (e) {
             console.error(e);
 
@@ -160,10 +128,13 @@
                     showCustomToast(`Failed to submit TX.`, 5000, 'danger');
                 }
             }
-
-            return null;   
         }
+    };
+
+    async function logContribution(network, asset, amount, txid) {
+
     }
+
 </script>
 
 <div class="container top-margin text-white mb-5">

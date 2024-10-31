@@ -1,4 +1,3 @@
-// sendErgoTx.ts
 import { OutputBuilder, TransactionBuilder, TokensCollection, SAFE_MIN_BOX_VALUE, ErgoAddress, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
 import { RECIPIENT_ADDRESS_ERGO, CF_TOKEN_ID } from "$lib/common/const.js";
 import { BigNumber } from 'bignumber.js';
