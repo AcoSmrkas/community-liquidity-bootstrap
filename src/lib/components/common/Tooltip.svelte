@@ -73,7 +73,7 @@
       </ul>
 
       {#if $selected_wallet}
-        <a href="/profile"><button style="margin: 0 auto;" class="my-2 block btn btn-primary border-0">My Profile</button></a>
+        <a href="/profile"><button style="margin: 0 auto;" class="my-2 mt-3 block btn btn-primary border-0">My Profile</button></a>
       {/if}
     </div>
   </div>
