@@ -68,7 +68,7 @@
 <div class="container top-margin text-white">
 
     <div class="container mx-auto px-4 max-w-6xl">
-        <h1 class="text-4xl font-bold text-white text-center mb-8">Contribution Statistics</h1>
+        <h1 class="text-4xl font-bold text-white text-center mb-8">Contribution Stats</h1>
     
         <!-- Goal Progress Section -->
         <div class="rounded-lg p-6 mb-8" style="background-color: var(--forms-bg);">

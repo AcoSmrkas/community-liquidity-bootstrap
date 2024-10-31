@@ -1,5 +1,4 @@
 <script>
-  import { onMount } from 'svelte';
   import WalletButton from '$lib/components/nav/WalletButton.svelte';
   import { page } from '$app/stores';
 
@@ -7,21 +6,20 @@
   let walletConnected = false;
   let navCollapsed = true;
   let pageName;
+  let oldPageName;
 
   $: page.subscribe((value) => {
     pageName = value.route.id.substr(1);
+    const match = pageName.match(/^([^/]+)\//);
+    pageName = match ? match[1] : pageName;
+
+    if (pageName != oldPageName) {
+      oldPageName = pageName;
+      if (!navCollapsed) {
+        toggleNav();
+      }
+    }
   });
-
-  function toggleModal() {
-    showModal = !showModal;
-  }
-
-  // Function to handle wallet connection state change
-  function handleWalletConnection(connected) {
-    walletConnected = connected;
-    // Trigger refresh or additional actions here
-    console.log('Wallet connected:', connected);
-  }
 
   function toggleNav() {
     navCollapsed = !navCollapsed;
@@ -64,17 +62,17 @@
       <li class="text-lg {pageName == 'stats' ? 'active' : ''}"><a href="./stats">Stats</a></li>
     </ul>
     <div class="flex items-center gap-4" style="margin-left: auto;flex: 0 1 auto; /* Allow items to have their natural widths */">
-      <WalletButton />
-      <button style="display: none !important;" type="button" on:click={toggleNav} class="d-block d-md-none navbar-toggler text-4xl"><i class="fa-solid fa-bars cursor-pointer"></i></button>
+      
+      <button type="button" aria-label="Toggle Navigation" on:click={toggleNav} class="d-block d-md-none navbar-toggler text-4xl"><i class="fa-solid fa-bars cursor-pointer"></i></button>
     </div>
   </div>
-  <div id="navmob" class="nav-mob flex relative justify-between pt-2 pt-4 pb-2" style="visibility: hidden;opacity:0;">
+  <div id="navmob" class="nav-mob flex relative justify-between pt-4 pb-2" style="visibility: hidden;opacity:0;">
     <ul class="w-100 gap-y-4 d-flex flex-col d-md-none" style="position: relative;
   left: 50%;
   transform: translateX(-50%);">
       <li class="leading-10 pb-2 text-lg border-b border-gray-700 {pageName == '' ? 'active' : ''}"><a href="./">   Home</a></li>
       <li class="leading-10 pb-2 text-lg border-b border-gray-700 {pageName == 'contribute' ? 'active' : ''}"><a href="./contribute">   Contribute</a></li>
-      <li class="leading-10 pb-2 text-lg border-b border-gray-700 {pageName == 'stats' ? 'active' : ''}"><a href="./stats">   Stats</a></li>
+      <li class="leading-10 pb-2 text-lg {pageName == 'stats' ? 'active' : ''}"><a href="./stats">   Stats</a></li>
     </ul>
   </div>
 </div>

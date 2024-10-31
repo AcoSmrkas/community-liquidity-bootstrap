@@ -7,6 +7,8 @@
     import { get } from "svelte/store";
     import { showCustomToast, isWalletConected, getCommonBoxIds } from '$lib/utils/utils.js';
     import { isWalletErgo, isWalletCardano} from '$lib/common/wallet.ts';
+    import { API_HOST } from '$lib/common/const.js';
+	import axios from "axios";
 
     let showErgopayModal = false;
     let isAuth = false;
@@ -71,6 +73,8 @@
                     const newOutputs = signed.outputs.filter(output => output.ergoTree == utxos[0].ergoTree);
 
                     updateTempBoxes(myAddress, usedBoxIds, newOutputs);
+
+                    logContribution('ergo', ergoToken, ergoAmount, transactionId);
                 }
             } else {
                 unsignedTx = unsigned;
@@ -89,6 +93,10 @@
             }
         }
     };
+
+    let onTxSubmitted = function (txId) {
+        logContribution('ergo', ergoToken, ergoAmount, txId);
+    }
 
     const handleCardanoSubmit = async () => {
         const selectedWalletErgo = get(selected_wallet);
@@ -112,6 +120,8 @@
 
             if (transactionId) {
                 showCustomToast(`Transaction submitted successfully.<br>TX ID: <a target="_new" href="https://cexplorer.io/tx/${transactionId}">${transactionId}</a>`, 5000, 'success');
+
+                logContribution('cardano', cardanoToken, cardanoAmount, transactionId);
             }
         } catch (e) {
             console.error(e);
@@ -132,7 +142,19 @@
     };
 
     async function logContribution(network, asset, amount, txid) {
-
+        try {
+            await axios.post(`${API_HOST}/clb/logContribution`, 
+                {
+                    network: network,
+                    asset: asset,
+                    amount: amount,
+                    address: $connected_wallet_address,
+                    txid: txid
+                }
+            );
+        } catch (e) {
+            console.error(e);
+        }
     }
 
 </script>
@@ -227,7 +249,7 @@
 </div>
 
 {#if showErgopayModal}
- <ErgopayModal bind:showErgopayModal bind:isAuth bind:unsignedTx>
+ <ErgopayModal bind:onTxSubmitted bind:showErgopayModal bind:isAuth bind:unsignedTx>
    <button slot="btn">Close</button>
  </ErgopayModal>
 {/if}

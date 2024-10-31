@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { selected_wallet, connected_wallet_address } from '$lib/store/store.js';
+  import { connected_wallet_address } from '$lib/store/store.ts';
   import { sleep, showCustomToast } from "$lib/utils/utils.js";
   import { connectErgoWallet } from "$lib/common/wallet.ts";
   import axios from 'axios';
@@ -9,6 +9,7 @@
   export let isAuth:boolean;
   export let unsignedTx:string;
   export let onBtnClick:Function|undefined;
+  export let onTxSubmitted:Function|undefined;
 
   let dialog: HTMLDialogElement;
   let qrCode = null;
@@ -138,6 +139,11 @@
         txIdOk = false;
       } else if (txIdOk) {
         showCustomToast(`Transaction submitted successfully. TX ID: <a target="_new" href="https://ergexplorer.com/transactions/${txIdOk}">${txIdOk}</a>`, 5000, 'success');
+
+        if (onTxSubmitted) {
+          onTxSubmitted(txIdOk);
+        }
+        
         onClose();
       }
 
@@ -196,13 +202,13 @@
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
 <dialog
-  class="bg-transparent border-info border-2"
+  class="bg-transparent border-2 border-info rounded-lg"
   bind:this={dialog}
   on:close={onClose}
 >
   <!-- svelte-ignore a11y-no-static-element-interactions -->
   <div 
-    class="rounded-lg p-4" style="background: var(--forms-bg)"
+    class="rounded-lg p-2 py-4 p-sm-4" style="background: var(--forms-bg)"
     on:click|stopPropagation>
     <div class="leading-6 pb-2 mb-3 text-white text-center font-bold w-100" style="font-family:'Manrope';font-size:1.5em;">Ergopay</div>
     <div id="qrcode" class="mb-2 border-2" style="border-color: var(--main-color)"></div>
