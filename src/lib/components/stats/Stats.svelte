@@ -3,6 +3,7 @@
     import { API_HOST } from '$lib/common/const.js';
     import axios from 'axios';
     
+    let loading = true;
     let stats = {
         ergo: {
             totalErg: 0,
@@ -33,8 +34,10 @@
     };
 
     // Fetch stats on mount
-    onMount(() => {
-        fetchStats();
+    onMount(async () => {
+        loading = true;
+        await fetchStats();
+        loading = false;
     });
 
     // Format numbers
@@ -49,6 +52,12 @@
 <div class="container top-margin text-white">
     <div class="container mx-auto px-0 max-w-6xl">
         <h1 class="text-4xl font-bold text-white text-center mb-8">Contribution Stats</h1>
+
+        {#if loading}
+        <div class="flex justify-center items-center min-h-[400px]">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        </div>
+        {:else}
         <!-- Stats Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <!-- Ergo Stats -->
@@ -89,5 +98,6 @@
                 </div>
             </div>
         </div>
+        {/if}
     </div>
 </div>
