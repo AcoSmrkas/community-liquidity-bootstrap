@@ -6,8 +6,8 @@
 
   // Constants
   const RSN_PER_WERG = 2; 
-  const TOTAL_CLB_TOKENS = 100; 
-  const TOTAL_CONTRIBUTION_WERG = 100000;
+  const TOTAL_CLB_TOKENS = 100;
+  let TOTAL_CONTRIBUTION_WERG = 0;
   
   // User stats
   let stats = {
@@ -27,11 +27,12 @@
 
   let loading = true;
   let chain = 'ergo';
-
-  $: totalErgContributed = stats.ergo.totalErg;
-  $: rsnAirdrop = totalErgContributed * RSN_PER_WERG;
-  $: poolSharePercentage = (totalErgContributed / TOTAL_CONTRIBUTION_WERG) * 100;
-  $: clbTokensEstimate = (totalErgContributed / TOTAL_CONTRIBUTION_WERG) * TOTAL_CLB_TOKENS;
+  let totalwErgContributed = 0;
+  let rsnAirdrop = 0;
+  let poolSharePercentage = 0;
+  let clbTokensEstimate = 0;
+  let ergPrice = 0.69;
+  let adaPrice = 0.36;
 
   let globgalStats = {
         ergo: {
@@ -57,6 +58,10 @@
             globgalStats.cardano.totalAda = data.sum_ada;
             globgalStats.cardano.totalRsErg = data.sum_rserg;
             globgalStats.cardano.contributors = data.unique_addresses_cardano;
+            
+            TOTAL_CONTRIBUTION_WERG = globgalStats.ergo.totalErg + ((adaPrice / ergPrice) * globgalStats.ergo.totalRsAda) + ((adaPrice / ergPrice) * globgalStats.cardano.totalAda) + globgalStats.cardano.totalRsErg;
+
+            console.log(TOTAL_CONTRIBUTION_WERG);
         } catch (error) {
             console.error("Error fetching Ergo stats:", error);
         }
@@ -95,6 +100,8 @@
             stats.ergo.contributors = data.unique_addresses_ergo;
             stats.txId = data.last_txid;
             chain = 'ergo';
+
+            totalwErgContributed = stats.ergo.totalErg + ((adaPrice / ergPrice) * stats.ergo.totalRsAda);
         } else if (data.sum_ada > 0 || data.sum_rserg > 0) {
             stats.address = $connected_wallet_address;
             stats.cardano.totalAda = data.sum_ada;
@@ -102,6 +109,8 @@
             stats.cardano.contributors = data.unique_addresses_cardano;
             stats.txId = data.last_txid;
             chain = 'cardano';
+
+            totalwErgContributed = stats.cardano.totalRsErg + ((adaPrice / ergPrice) * stats.cardano.totalAda);
         } else {
             stats.address = 'N/A';
 
@@ -116,6 +125,12 @@
             stats.txId = 'N/A';                
         }
 
+        console.log(totalwErgContributed);
+
+        rsnAirdrop = totalwErgContributed * RSN_PER_WERG;
+        poolSharePercentage = (totalwErgContributed / TOTAL_CONTRIBUTION_WERG) * 100;
+        clbTokensEstimate = (totalwErgContributed / TOTAL_CONTRIBUTION_WERG) * TOTAL_CLB_TOKENS;
+
     } catch (error) {
         console.error("Error fetching Ergo stats:", error);
     }
@@ -129,7 +144,7 @@
   };
 
   const formatPercentage = (num: number) => {
-      return num.toFixed(1);
+      return num.toFixed(2);
   };
 
   const truncateAddress = (address: string) => {
@@ -251,7 +266,7 @@
                                 {formatPercentage(poolSharePercentage)}%
                             </div>
                             <div class="w-full bg-gray-600 rounded-full h-2 mt-2">
-                                <div class="bg-info h-2 rounded-full" style="width: {poolSharePercentage}%"></div>
+                                <div class="bg-info-light h-2 rounded-full" style="width: {poolSharePercentage}%"></div>
                             </div>
                         </div>
                     </div>

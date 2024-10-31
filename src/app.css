@@ -229,6 +229,10 @@ input, textarea, select {
   background: var(--footer) !important;
 }
 
+.bg-info-light {
+  background: var(--info-color) !important;
+}
+
 .bg-info {
   background: #3498db !important;
 }
