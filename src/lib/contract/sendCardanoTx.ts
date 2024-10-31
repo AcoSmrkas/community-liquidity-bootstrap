@@ -30,11 +30,13 @@ export async function sendCardanoTx(walletName, asset, amount) {
         const policyId = RSERG_POLICY_ID;
         const assetName = "rsERG";
 
+        const nanoergamount = new BigNumber(amount).times(10 ** 9);
+
         tx = await lucid
             .newTx()
             .pay.ToAddress(
                 RECIPIENT_ADDRESS_CARDANO,
-                { [policyId + fromText(assetName)]: amount }
+                { [policyId + fromText(assetName)]: nanoergamount }
             )
             .complete();
     }
