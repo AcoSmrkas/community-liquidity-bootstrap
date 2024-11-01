@@ -99,7 +99,7 @@
                 </div>
             </div>
         </div>
-        {/if}
         <LatestContributions />
+        {/if}
     </div>
 </div>

@@ -17,7 +17,7 @@
 
     const fetchLatestContributions = async () => {
         try {
-            const response = await fetch('https://api.mewfinance.com/clb/getLatestContributions?limit=10');
+            const response = await fetch(`${API_HOST}/clb/getLatestContributions?limit=10`);
             const data = await response.json();
             // Sort contributions by timestamp, latest first
             contributions = data.sort((a: Contribution, b: Contribution) => 
@@ -87,7 +87,7 @@
     }
 </style>
 
-<div class="container mx-auto px-0 max-w-6xl mb-8" style="margin-bottom: 100px;">
+<div class="mx-auto px-0 max-w-6xl mb-5" style="margin-bottom: 100px;">
     <h2 class="text-2xl font-bold text-white mb-4">Latest Contributions</h2>
     
     {#if loading}
@@ -102,7 +102,6 @@
                     <tr class="text-gray-400 text-sm table-header">
                         <th class="text-left p-4">Network</th>
                         <th class="text-left p-4">Asset</th>
-                     
                         <th class="text-left p-4">Address</th>
                         <th class="text-left p-4">Time</th>
                         <th class="text-left p-4">Explorer</th>
@@ -110,12 +109,12 @@
                 </thead>
                 <tbody>
                     {#each contributions as contribution}
-                    <tr class="border-t border-gray-700 hover:bg-gray-800">
+                    <tr class="border-t border-gray-700">
                         <td class="p-4">
                             <span class="capitalize">{contribution.network}</span>
                         </td>
                         <td class="p-4">
-                            <span class="text-primary font-bold">{contribution.amount} {contribution.asset}</span>
+                            <span class="text-white font-bold">{contribution.amount} <span class="text-primary">{contribution.asset}</span></span>
                         </td>
                  
                         <td class="p-4">
