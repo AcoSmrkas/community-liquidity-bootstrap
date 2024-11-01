@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { API_HOST } from '$lib/common/const.js';
+  import { getErgPrice, getCardanoPrice } from '$lib/utils/utils.js';
   import { connected_wallet_address } from "$lib/store/store.ts";
   import axios from 'axios';
 
@@ -31,8 +32,9 @@
   let rsnAirdrop = 0;
   let poolSharePercentage = 0;
   let clbTokensEstimate = 0;
-  let ergPrice = 0.69;
-  let adaPrice = 0.36;
+  let ergPrice = 0;
+  let adaPrice = 0;
+  let fetchingPrice = false;
 
   let globgalStats = {
         ergo: {
@@ -60,8 +62,6 @@
             globgalStats.cardano.contributors = data.unique_addresses_cardano;
             
             TOTAL_CONTRIBUTION_WERG = globgalStats.ergo.totalErg + ((adaPrice / ergPrice) * globgalStats.ergo.totalRsAda) + ((adaPrice / ergPrice) * globgalStats.cardano.totalAda) + globgalStats.cardano.totalRsErg;
-
-            console.log(TOTAL_CONTRIBUTION_WERG);
         } catch (error) {
             console.error("Error fetching Ergo stats:", error);
         }
@@ -76,6 +76,18 @@
   }
 
   async function updateStats() {
+    if (fetchingPrice) return;
+
+    if (!fetchingPrice && 
+    (ergPrice == 0 || adaPrice == 0)) {
+        fetchingPrice = true;
+
+        ergPrice = await getErgPrice();
+        adaPrice = await getCardanoPrice();
+
+        fetchingPrice = false;
+    }
+
       if (!$connected_wallet_address) {
         loading = false;
         return;
@@ -124,8 +136,6 @@
 
             stats.txId = 'N/A';                
         }
-
-        console.log(totalwErgContributed);
 
         rsnAirdrop = totalwErgContributed * RSN_PER_WERG;
         poolSharePercentage = (totalwErgContributed / TOTAL_CONTRIBUTION_WERG) * 100;

@@ -273,3 +273,36 @@ export function getCommonBoxIds(array1, array2) {
     // Use filter and has method to find common boxIds
     return Array.from(set1).filter(boxId => set2.has(boxId));
 }
+
+export async function getErgPrice() {
+    try {
+        const ergResponse = await fetch('https://api.ergexplorer.com/tokens/getErgPrice');
+        const ergData = await ergResponse.json();
+
+        return ergData.items[0].value;
+    } catch (error) {
+      console.error('Error fetching Ergo price:', error);
+      return null;
+    }
+}
+
+export async function getCardanoPrice() {
+  try {
+      // Using CoinGecko API which is free and doesn't require an API key
+      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=cardano&vs_currencies=usd');
+      
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      
+      const data = await response.json();
+      
+      // Extract ADA price in USD
+      const adaPrice = data.cardano.usd;
+      
+      return adaPrice;
+  } catch (error) {
+      console.error('Error fetching Cardano price:', error);
+      return null;
+  }
+}
