@@ -15,3 +15,6 @@ export const RECIPIENT_ADDRESS_CARDANO = 'addr1q82946608zxkl8v2juvgptrkp64hktzs5
 export const RECIPIENT_ADDRESS_ERGO = "9fLXRjthKecc7LsHyQAF9w2DfqVbsFxsHqUBpz2ouBPYRmaBxfT";
 export const RSADA_TOKEN_ID = "e023c5f382b6e96fbd878f6811aac73345489032157ad5affb84aefd4956c297";
 export const RSERG_POLICY_ID = "04b95368393c821f180deee8229fbd941baaf9bd748ebcdbf7adbb14";
+
+export const RSN_PER_WERG = 2; 
+export const TOTAL_CLB_TOKENS = 100;

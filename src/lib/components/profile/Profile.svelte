@@ -1,13 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { API_HOST } from '$lib/common/const.js';
+  import { API_HOST, RSN_PER_WERG, TOTAL_CLB_TOKENS } from '$lib/common/const.js';
   import { getErgPrice, getCardanoPrice } from '$lib/utils/utils.js';
   import { connected_wallet_address } from "$lib/store/store.ts";
   import axios from 'axios';
 
   // Constants
-  const RSN_PER_WERG = 2; 
-  const TOTAL_CLB_TOKENS = 100;
   let TOTAL_CONTRIBUTION_WERG = 0;
   
   // User stats

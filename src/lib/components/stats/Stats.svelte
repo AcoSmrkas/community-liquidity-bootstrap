@@ -1,9 +1,13 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { API_HOST } from '$lib/common/const.js';
+    import { API_HOST, RSN_PER_WERG, TOTAL_CLB_TOKENS } from '$lib/common/const.js';
     import axios from 'axios';
     import LatestContributions from '$lib/components/stats/LatestContributions.svelte';
-    
+    import { getErgPrice, getCardanoPrice } from '$lib/utils/utils.js';
+
+    let ergPrice = 0;
+    let adaPrice = 0;
+    let totalwErgContributed = 0;
     let loading = true;
     let stats = {
         ergo: {
@@ -29,6 +33,8 @@
             stats.cardano.totalAda = data.sum_ada;
             stats.cardano.totalRsErg = data.sum_rserg;
             stats.cardano.contributors = data.unique_addresses_cardano;
+
+            totalwErgContributed = (stats.ergo.totalErg + ((adaPrice / ergPrice) * stats.ergo.totalRsAda)) + (stats.cardano.totalRsErg + ((adaPrice / ergPrice) * stats.cardano.totalAda));
         } catch (error) {
             console.error("Error fetching Ergo stats:", error);
         }
@@ -37,15 +43,17 @@
     // Fetch stats on mount
     onMount(async () => {
         loading = true;
+        ergPrice = await getErgPrice();
+        adaPrice = await getCardanoPrice();
         await fetchStats();
         loading = false;
     });
 
     // Format numbers
-    const formatNumber = (num: number) => {
+    const formatNumber = (num: number, decimals: number = 2) => {
         return num.toLocaleString(undefined, { 
             minimumFractionDigits: 2,
-            maximumFractionDigits: 2 
+            maximumFractionDigits: decimals 
         });
     };
 </script>
@@ -59,6 +67,13 @@
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
         </div>
         {:else}
+        <div class="grid grid-cols-1 gap-4 mb-4">
+            <div class="rounded-lg p-6" style="background-color: var(--forms-bg);">
+            <div class="p-4 rounded bg-footer">
+                <p class="text-2xl font-bold text-white text-center">Total contributed: {formatNumber(totalwErgContributed, 9)} <span class="text-primary font-bold">wERG</span></p>
+            </div>
+            </div>
+        </div>
         <!-- Stats Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <!-- Ergo Stats -->
