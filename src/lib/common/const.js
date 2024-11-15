@@ -63,6 +63,29 @@ export const FUNDING_CAMPAIGNS = {
                     decimals: 0
                 }
             }
+        },
+        {
+            id: 3,
+            title: "test",
+            description: "Support Ergo-based liquidity pool for ERG-RSSNEK pair.",
+            recipientAddress: "9hq7R1zrrUAmLp2Row7tMJwXhFYxSQf2Zn8UDrN6zJhzNQnnPiF",
+            endDate: "2024-12-31",
+            assets: {
+                base: {
+                    name: "ERG",
+                    tokenId: null,
+                    icon: "https://spectrum.fi/logos/ergo/0000000000000000000000000000000000000000000000000000000000000000.svg?OqybPLDEPp",
+                    targetAmount: 0.1,
+                    decimals: 9
+                },
+                token: {
+                    name: "TEST",
+                    tokenId: "4ba9550720bc6520c8d58b1e8d7615627b775440f8d642415df1581eacf6d68a",
+                    icon: "67c7728b07902f70fdb17f69854e2ef4042a716d179f6af675bd1691a5784475",
+                    targetAmount: 10,
+                    decimals: 9
+                }
+            }
         }
     ],
     cardano: [

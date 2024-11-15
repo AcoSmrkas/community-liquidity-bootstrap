@@ -1,24 +1,51 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
+    import { BigNumber } from 'bignumber.js';
     import { sendErgoTx } from "$lib/contract/sendErgoTx.ts";
     import { sendCardanoTx } from "$lib/contract/sendCardanoTx.ts";
     import ErgopayModal from '$lib/components/common/ErgopayModal.svelte';
     import ContributeModal from './ContributeModal.svelte';
+    import CreateLPModal from './CreateLPModal.svelte';
     import { selected_wallet, connected_wallet_address } from "$lib/store/store.ts";
     import { fetchBoxes, getBlockHeight, updateTempBoxes } from '$lib/api-explorer/explorer.ts';  
     import { get } from "svelte/store";
     import { showCustomToast, isWalletConected, getCommonBoxIds } from '$lib/utils/utils.js';
     import { isWalletErgo, isWalletCardano} from '$lib/common/wallet.ts';
-    import { API_HOST, FUNDING_CAMPAIGNS } from '$lib/common/const.js';
+    import { API_HOST, FUNDING_CAMPAIGNS, BLOCKFROST_PROJECT_ID } from '$lib/common/const.js';
     import axios from "axios";
-        import { onMount } from 'svelte';
-        import { BigNumber } from 'bignumber.js';
 
     let showErgopayModal = false;
     let showContributeModal = false;
+    let showCreateLPModal = false;
     let selectedCampaign = null;
     let isAuth = false;
     let unsignedTx = null;
-  let campaignBalances = {};
+    let activeTab = 'ergo';
+    let campaignBalances = {};
+
+    function openContributeModal(campaign) {
+        selectedCampaign = campaign;
+        showContributeModal = true;
+    }
+
+    function openCreateLPModal(campaign) {
+        if (!isWalletConected()) {
+            showCustomToast('Please connect your wallet first', 1500, 'info');
+            return;
+        }
+        selectedCampaign = campaign;
+        showCreateLPModal = true;
+    }
+
+    function onContributeModalClose() {
+        showContributeModal = false;
+        selectedCampaign = null;
+    }
+
+    function onCreateLPModalClose() {
+        showCreateLPModal = false;
+        selectedCampaign = null;
+    }
 
     async function fetchErgoBalance(address, campaign) {
         try {
@@ -136,22 +163,6 @@
         }
     }
 
-    onMount(() => {
-        updateBalances();
-        // Update balances every 5 minutes
-        const interval = setInterval(updateBalances, 300000);
-        return () => clearInterval(interval);
-    });
-    function openContributeModal(campaign) {
-        selectedCampaign = campaign;
-        showContributeModal = true;
-    }
-
-    function onContributeModalClose() {
-        showContributeModal = false;
-        selectedCampaign = null;
-    }
-
     function handleTxSubmitted(txId) {
         if (selectedCampaign) {
             logContribution('ergo', selectedCampaign.assets.base.name, amount, txId, selectedCampaign.id);
@@ -173,16 +184,20 @@
         }
     }
 
-    let activeTab = 'ergo';
+    onMount(() => {
+        updateBalances();
+        const interval = setInterval(updateBalances, 300000); // Update every 5 minutes
+        return () => clearInterval(interval);
+    });
 </script>
-<div class="container">
+
 <div class="container mx-auto px-4 py-8 text-white">
     <h1 class="text-4xl font-bold text-center mb-8">Contribute</h1>
 
     <!-- Network Tabs -->
     <div class="flex justify-center space-x-4 mb-8">
         <button
-            class="px-8 py-2 rounded-lg font-medium transition-colors text-black duration-200"
+            class="px-8 py-2 rounded-lg font-medium transition-colors duration-200"
             class:active-tab={activeTab === 'ergo'}
             class:inactive-tab={activeTab !== 'ergo'}
             on:click={() => activeTab = 'ergo'}
@@ -190,7 +205,7 @@
             Ergo Campaigns
         </button>
         <button
-            class="px-8 py-2 rounded-lg font-medium  text-black duration-200"
+            class="px-8 py-2 rounded-lg font-medium transition-colors duration-200"
             class:active-tab={activeTab === 'cardano'}
             class:inactive-tab={activeTab !== 'cardano'}
             on:click={() => activeTab = 'cardano'}
@@ -199,17 +214,17 @@
         </button>
     </div>
 
-     <!-- Updated Campaign Cards -->
+    <!-- Campaign Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {#each FUNDING_CAMPAIGNS[activeTab] as campaign (campaign.id)}
             <div class="campaign-card rounded-lg p-6 hover:shadow-lg transition-shadow">
                 <h3 class="text-xl font-bold mb-2">{campaign.title}</h3>
                 <p class="text-gray-300 text-sm mb-4">{campaign.description}</p>
                 
-                <div class="space-y-4">
-                    <!-- Base Token Progress -->
+                <!-- Base Token Progress -->
+                <div class="space-y-4 mb-4">
                     <div>
-                        <div class="flex items-center  justify-between mb-2">
+                        <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center space-x-2">
                                 <img src={campaign.assets.base.icon} alt={campaign.assets.base.name} class="w-6 h-6"/>
                                 <span>{campaign.assets.base.name}</span>
@@ -252,18 +267,29 @@
                     Ends: {new Date(campaign.endDate).toLocaleDateString()}
                 </div>
 
-                <button
-                    class="contribute-btn w-full mt-4 px-4 py-2 rounded-lg text-black transition-colors"
-                    on:click={() => openContributeModal(campaign)}
-                >
-                    Contribute
-                </button>
+                <!-- Action Buttons -->
+                <div class="flex space-x-2 mt-4">
+                    <button
+                        class="flex-1 px-4 py-2 bg-main-color hover:opacity-90 rounded-lg text-white transition-colors"
+                        on:click={() => openContributeModal(campaign)}
+                    >
+                        Contribute
+                    </button>
+                    
+                    
+                        <button
+                            class="flex-1 px-4 py-2 bg-secondary-color hover:opacity-90 rounded-lg text-white transition-colors"
+                            on:click={() => openCreateLPModal(campaign)}
+                        >
+                            Create LP
+                        </button>
+                    
+                </div>
             </div>
         {/each}
     </div>
+</div>
 
-</div>
-</div>
 {#if showContributeModal}
     <ContributeModal 
         campaign={selectedCampaign}
@@ -271,6 +297,13 @@
         bind:showErgopayModal
         bind:isAuth
         bind:unsignedTx
+    />
+{/if}
+
+{#if showCreateLPModal}
+    <CreateLPModal
+        campaign={selectedCampaign}
+        onClose={onCreateLPModalClose}
     />
 {/if}
 
@@ -290,16 +323,6 @@
         background-color: var(--forms-bg);
     }
 
-    .contribute-btn {
-        background-color: var(--main-color);
-        color: black; /* Set the button text color to black */
-    }
-
-    .contribute-btn:hover {
-        opacity: 0.9;
-        color: black; /* Ensure the text remains black on hover */
-    }
-
     .active-tab {
         background-color: var(--main-color);
         color: white;
@@ -315,8 +338,11 @@
         opacity: 0.7;
     }
 
-    :global(.campaign-card) {
-        background-color: var(--forms-bg);
+    .bg-main-color {
+        background-color: var(--main-color);
+    }
+
+    .bg-secondary-color {
+        background-color: var(--secondary-color, #4A5568);
     }
 </style>
-
