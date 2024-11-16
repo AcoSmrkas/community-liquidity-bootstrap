@@ -2,28 +2,22 @@ import {
     OutputBuilder, 
     TransactionBuilder, 
     SAFE_MIN_BOX_VALUE,
-    SByte,
+    ErgoAddress,
+    mint
 } from "@fleet-sdk/core";
 import { BigNumber } from 'bignumber.js';
 
-const MAX_LP_SUPPLY = "9223372036854774784";
-const FEE_FACTOR = "990";
-const DEBUG = true;
-const PROXY_ADDRESS = "5vSUZRZbdVbnk4sJWjg2uhL94VZWRg4iatK9VgMChufzUgdihgvhR8yWSUEJKszzV7Vmi6K8hCyKTNhUaiP8p5ko6YEU9yfHpjVuXdQ4i5p4cRCzch6ZiqWrNukYjv7Vs5jvBwqg5hcEJ8u1eerr537YLWUoxxi1M4vQxuaCihzPKMt8NDXP4WcbN6mfNxxLZeGBvsHVvVmina5THaECosCWozKJFBnscjhpr3AJsdaL8evXAvPfEjGhVMoTKXAb2ZGGRmR8g1eZshaHmgTg2imSiaoXU5eiF3HvBnDuawaCtt674ikZ3oZdekqswcVPGMwqqUKVsGY4QuFeQoGwRkMqEYTdV2UDMMsfrjrBYQYKUBFMwsQGMNBL1VoY78aotXzdeqJCBVKbQdD3ZZWvukhSe4xrz8tcF3PoxpysDLt89boMqZJtGEHTV9UBTBEac6sDyQP693qT3nKaErN8TCXrJBUmHPqKozAg9bwxTqMYkpmb9iVKLSoJxG7MjAj72SRbcqQfNCVTztSwN3cRxSrVtz4p87jNFbVtFzhPg7UqDwNFTaasySCqM";
-
-interface MintLPParams {
-    userAddress: string;
-    tokenId: string;
-}
-
-interface CreatePoolParams {
+interface LPCreationParams {
     userAddress: string;
     ergAmount: string;
     tokenAmount: string;
     tokenId: string;
     tokenDecimals: number;
-    lpTokenId: string;
+    proxyAddress: string;
+    campaignId: number;
 }
+
+const DEBUG = true;
 
 function debugLog(...args) {
     if (DEBUG) {
@@ -31,161 +25,213 @@ function debugLog(...args) {
     }
 }
 
-export function buildMintLPTokenTx(
+export async function buildMintLPTokenTx(
     userUtxos: Array<any>,
     height: number,
-    params: MintLPParams
+    params: LPCreationParams
 ) {
-    const { userAddress, tokenId } = params;
+    debugLog("Building initial mint transaction with params:", {
+        utxos: userUtxos.length,
+        height,
+        ...params
+    });
 
-    try {
-        debugLog("Building mint transaction");
-        
-        // We just need minimal ERG for minting
-        const requiredErg = BigInt(SAFE_MIN_BOX_VALUE) + BigInt(1000000);
-        
-        // Select input box
-        const inputBox = userUtxos.find(box => BigInt(box.value) >= requiredErg);
-        if (!inputBox) {
-            throw new Error(`Insufficient ERG for minting. Required: ${requiredErg.toString()}`);
-        }
-
-        // Create mint box
-        const mintBox = new OutputBuilder(
-            BigInt(SAFE_MIN_BOX_VALUE),
-            userAddress
-        )
-        .mintToken({
-            amount: MAX_LP_SUPPLY,
-            name: `LP_${tokenId.slice(0, 8)}`,
-            decimals: 9,
-            description: `LP Token for ERG/${tokenId.slice(0, 8)}`
-        });
-
-        debugLog("Created mint box", {
-            value: mintBox.value.toString(),
-            tokens: mintBox.tokens
-        });
-
-        const unsignedTx = new TransactionBuilder(height)
-            .from([inputBox])
-            .to(mintBox)
-            .sendChangeTo(userAddress)
-            .payMinFee()
-            .build();
-
-        return unsignedTx.toEIP12Object();
-
-    } catch (error) {
-        debugLog("Error in mint transaction:", error);
-        throw error;
-    }
-}
-
-export function buildCreatePoolTx(
-    userUtxos: Array<any>,
-    height: number,
-    params: CreatePoolParams
-) {
     const {
         userAddress,
         ergAmount,
         tokenAmount,
         tokenId,
         tokenDecimals,
-        lpTokenId
+        proxyAddress
     } = params;
 
     try {
-        debugLog("Building pool transaction");
-
-        // Convert amounts
+        // Convert amounts to base units
         const ergNano = new BigNumber(ergAmount).times(10 ** 9).integerValue();
-        const actualTokenAmount = new BigNumber(tokenAmount).times(10 ** tokenDecimals).integerValue();
+        const tokenBase = new BigNumber(tokenAmount).times(10 ** tokenDecimals).integerValue();
 
-        debugLog("Amounts:", {
+        debugLog("Converted amounts:", {
             ergNano: ergNano.toString(),
-            actualTokenAmount: actualTokenAmount.toString()
+            tokenBase: tokenBase.toString()
         });
 
-        // Find boxes with required tokens
-        const lpTokenBox = userUtxos.find(box => 
+        // Calculate initial LP token supply based on geometric mean
+        const lpTokenSupply = new BigNumber(Math.sqrt(
+            ergNano.times(tokenBase).toNumber()
+        )).integerValue();
+
+        debugLog("LP token supply:", lpTokenSupply.toString());
+
+        // Create LP token name
+        const lpTokenName = `LP_${tokenId.slice(0, 8)}`;
+
+        // Find input box to mint token from
+        let inputSum = BigInt(0);
+        const selectedInputs = [];
+        const requiredErg = BigInt(SAFE_MIN_BOX_VALUE) + BigInt(1000000); // min value + fee
+
+        for (const box of userUtxos) {
+            selectedInputs.push(box);
+            inputSum += BigInt(box.value);
+            if (inputSum >= requiredErg) break;
+        }
+
+        if (inputSum < requiredErg) {
+            throw new Error(`Insufficient ERG. Required: ${requiredErg.toString()}, Found: ${inputSum.toString()}`);
+        }
+
+        // Create minting box
+        const outputBox = new OutputBuilder(
+            BigInt(SAFE_MIN_BOX_VALUE),
+            userAddress
+        ).mintToken({
+            amount: lpTokenSupply.toString(),
+            name: lpTokenName,
+            decimals: 9,
+            description: `LP Token for ${ergAmount} ERG and ${tokenAmount} tokens`
+        });
+
+        debugLog("Created mint box configuration:", {
+            address: userAddress,
+            value: outputBox.value.toString(),
+            tokens: outputBox.tokens
+        });
+
+        // Create transaction
+        const tx = new TransactionBuilder(height)
+            .from(selectedInputs)
+            .to(outputBox)
+            .sendChangeTo(userAddress)
+            .payMinFee()
+            .build();
+
+        const txInfo = {
+            inputs: tx.inputs.length,
+            inputsTotal: tx.inputs.reduce((sum, input) => sum + BigInt(input.value), BigInt(0)),
+            outputs: tx.outputs.length,
+            outputsTotal: tx.outputs.reduce((sum, output) => sum + BigInt(output.value), BigInt(0)),
+            fee: tx.fee
+        };
+
+        debugLog("Transaction details:", txInfo);
+        
+        return tx.toEIP12Object();
+    } catch (error) {
+        debugLog("Error in mint transaction:", error);
+        throw error;
+    }
+}
+
+
+export async function buildCreateLPTx(
+    userUtxos: Array<any>,
+    height: number,
+    params: LPCreationParams,
+    lpTokenId: string
+) {
+    debugLog("Building pool creation transaction with params:", {
+        utxos: userUtxos.length,
+        height,
+        lpTokenId,
+        ...params
+    });
+
+    const {
+        userAddress,
+        ergAmount,
+        tokenAmount,
+        tokenId,
+        tokenDecimals,
+        proxyAddress
+    } = params;
+
+    try {
+        // Convert amounts to base units
+        const ergNano = new BigNumber(ergAmount).times(10 ** 9).integerValue();
+        const tokenBase = new BigNumber(tokenAmount).times(10 ** tokenDecimals).integerValue();
+
+        debugLog("Pool amounts:", {
+            ergNano: ergNano.toString(),
+            tokenBase: tokenBase.toString()
+        });
+
+        // Find inputs with required tokens
+        const tokenInput = userUtxos.find(box => 
+            box.assets?.some(token => token.tokenId === tokenId && 
+                BigInt(token.amount) >= BigInt(tokenBase.toString()))
+        );
+
+        const lpTokenInput = userUtxos.find(box =>
             box.assets?.some(token => token.tokenId === lpTokenId)
         );
 
-        const projectTokenBox = userUtxos.find(box => 
-            box.assets?.some(token => 
-                token.tokenId === tokenId && 
-                BigInt(token.amount) >= BigInt(actualTokenAmount.toString())
-            )
-        );
-
-        debugLog("Found boxes:", {
-            lpTokenBox: lpTokenBox?.boxId,
-            projectTokenBox: projectTokenBox?.boxId
-        });
-
-        if (!lpTokenBox) {
-            throw new Error("LP token not found");
+        if (!tokenInput || !lpTokenInput) {
+            throw new Error("Insufficient tokens for pool creation");
         }
 
-        if (!projectTokenBox) {
-            throw new Error(`Insufficient project tokens. Required: ${actualTokenAmount.toString()}`);
+        // Calculate total required ERG
+        const requiredErg = BigInt(ergNano.toString());
+        let selectedInputs = [tokenInput];
+        if (tokenInput.boxId !== lpTokenInput.boxId) {
+            selectedInputs.push(lpTokenInput);
         }
 
-        // Select inputs
-        let selectedInputs = [lpTokenBox];
-        if (lpTokenBox !== projectTokenBox) {
-            selectedInputs.push(projectTokenBox);
-        }
-
-        // Add more inputs for ERG if needed
+        // Add more inputs if needed for ERG
         let inputSum = selectedInputs.reduce((sum, box) => sum + BigInt(box.value), BigInt(0));
         for (const box of userUtxos) {
             if (selectedInputs.some(input => input.boxId === box.boxId)) continue;
             selectedInputs.push(box);
             inputSum += BigInt(box.value);
-            if (inputSum >= BigInt(ergNano.toString()) + BigInt(2000000)) break;
+            if (inputSum >= requiredErg + BigInt(1000000)) break;
         }
 
-        if (inputSum < BigInt(ergNano.toString())) {
-            throw new Error(`Insufficient ERG. Required: ${ergNano.toString()}`);
+        if (inputSum < requiredErg) {
+            throw new Error(`Insufficient ERG. Required: ${requiredErg.toString()}, Found: ${inputSum.toString()}`);
         }
 
-        // Create pool box
+        debugLog("Selected pool inputs:", {
+            count: selectedInputs.length,
+            totalErg: inputSum.toString()
+        });
+
+        // Build pool box
         const poolBox = new OutputBuilder(
-            BigInt(ergNano.toString()),
-            PROXY_ADDRESS
+            requiredErg,
+            proxyAddress
         )
         .addTokens([
             {
                 tokenId: tokenId,
-                amount: actualTokenAmount.toString()
+                amount: tokenBase.toString()
             },
             {
                 tokenId: lpTokenId,
-                amount: MAX_LP_SUPPLY
+                amount: "1" // Tracking token
             }
-        ])
-        .setAdditionalRegisters({
-            R4: { value: FEE_FACTOR, type: "SInt" }
-        });
+        ]);
 
-        debugLog("Created pool box", {
+        debugLog("Created pool box:", {
             value: poolBox.value.toString(),
-            tokens: poolBox.tokens,
-            registers: poolBox.registers
+            tokens: poolBox.tokens
         });
 
-        const unsignedTx = new TransactionBuilder(height)
+        // Build transaction
+        const txBuilder = new TransactionBuilder(height)
             .from(selectedInputs)
             .to(poolBox)
             .sendChangeTo(userAddress)
-            .payMinFee()
-            .build();
+            .payMinFee();
+
+        debugLog("Building pool creation transaction");
+        const unsignedTx = txBuilder.build();
+
+        debugLog("Built pool transaction:", {
+            inputs: unsignedTx.inputs.length,
+            outputs: unsignedTx.outputs.length,
+            fee: unsignedTx.fee
+        });
 
         return unsignedTx.toEIP12Object();
-
     } catch (error) {
         debugLog("Error in pool transaction:", error);
         throw error;

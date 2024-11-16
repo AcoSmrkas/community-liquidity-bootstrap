@@ -68,7 +68,7 @@ export const FUNDING_CAMPAIGNS = {
             id: 3,
             title: "test",
             description: "Support Ergo-based liquidity pool for ERG-RSSNEK pair.",
-            recipientAddress: "9faErsgESzH82XjP2nX1cNzQ6Zt1NasWSkiqksZdA2Kf2maLivm",
+            recipientAddress: "9hq7R1zrrUAmLp2Row7tMJwXhFYxSQf2Zn8UDrN6zJhzNQnnPiF",
             endDate: "2024-12-31",
             assets: {
                 base: {
@@ -79,8 +79,8 @@ export const FUNDING_CAMPAIGNS = {
                     decimals: 9
                 },
                 token: {
-                    name: "test",
-                    tokenId: "171964f54d05c208d6b8acfcd403cdcc6bb877db508f03dc88f3007a7eb6439b",
+                    name: "TEST",
+                    tokenId: "4ba9550720bc6520c8d58b1e8d7615627b775440f8d642415df1581eacf6d68a",
                     icon: "67c7728b07902f70fdb17f69854e2ef4042a716d179f6af675bd1691a5784475",
                     targetAmount: 10,
                     decimals: 9

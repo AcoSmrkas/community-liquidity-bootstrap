@@ -1,10 +1,13 @@
 <script lang="ts">
-    import { get } from "svelte/store";
+    import { buildMintLPTokenTx, buildCreateLPTx } from '$lib/contract/lpTxBuilder.ts';
     import { selected_wallet, connected_wallet_address } from "$lib/store/store.ts";
     import { fetchBoxes, getBlockHeight } from '$lib/api-explorer/explorer.ts';
     import { showCustomToast, isWalletConected } from '$lib/utils/utils.js';
     import { isWalletErgo } from '$lib/common/wallet.ts';
-    import { buildMintLPTokenTx, buildCreatePoolTx } from '$lib/contract/lpTxBuilder.ts';
+    import { get } from "svelte/store";
+    import { createEventDispatcher } from 'svelte';
+
+    const dispatch = createEventDispatcher();
 
     export let campaign;
     export let onClose;
@@ -15,8 +18,10 @@
     };
 
     let loading = false;
-    let step = 1; // 1: Confirm, 2: Processing Mint, 3: Processing Pool
+    let step = 1; // 1: Confirm, 2: Minting LP Token, 3: Creating Pool, 4: Waiting
+    let lpTokenId = '';
     let error = null;
+    let waitingForConfirmation = false;
 
     const DEBUG = true;
 
@@ -26,11 +31,110 @@
         }
     }
 
-    async function handleCreateLP() {
-        const selectedWallet = get(selected_wallet);
-        debugLog('Starting LP creation process');
-        
+    async function handleMintTransaction(params, selectedWallet) {
+        debugLog('Building mint transaction');
+        const mintTx = await buildMintLPTokenTx(
+            params.utxos,
+            params.height,
+            {
+                userAddress: params.myAddress,
+                ergAmount: campaign.assets.base.targetAmount.toString(),
+                tokenAmount: campaign.assets.token.targetAmount.toString(),
+                tokenId: campaign.assets.token.tokenId,
+                tokenDecimals: campaign.assets.token.decimals,
+                proxyAddress: campaign.recipientAddress,
+                campaignId: campaign.id
+            }
+        );
+
+        if (selectedWallet === 'ergopay') {
+            ergopayState.unsignedTx = mintTx;
+            ergopayState.isAuth = false;
+            ergopayState.showErgopayModal = true;
+            onClose();
+            return null;
+        }
+
+        debugLog('Signing mint transaction');
+        const signedMintTx = await ergo.sign_tx(mintTx);
+        debugLog('Submitting mint transaction');
+        return await ergo.submit_tx(signedMintTx);
+    }
+
+    async function handlePoolTransaction(params, lpTokenId) {
+        debugLog('Building pool transaction');
+        const poolTx = await buildCreateLPTx(
+            params.utxos,
+            params.height,
+            {
+                userAddress: params.myAddress,
+                ergAmount: campaign.assets.base.targetAmount.toString(),
+                tokenAmount: campaign.assets.token.targetAmount.toString(),
+                tokenId: campaign.assets.token.tokenId,
+                tokenDecimals: campaign.assets.token.decimals,
+                proxyAddress: campaign.recipientAddress,
+                campaignId: campaign.id
+            },
+            lpTokenId
+        );
+
+        debugLog('Signing pool transaction');
+        const signedPoolTx = await ergo.sign_tx(poolTx);
+        debugLog('Submitting pool transaction');
+        return await ergo.submit_tx(signedPoolTx);
+    }
+
+    async function waitForConfirmation(txId) {
+    debugLog('Waiting for confirmation of tx:', txId);
+    waitingForConfirmation = true;
+    let attempts = 0;
+    const maxAttempts = 15; // Increased attempts
+    
+    while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 4000)); // Increased wait time
         try {
+            const utxos = await fetchBoxes($connected_wallet_address);
+            debugLog('Checking UTXOs for LP token:', utxos.length);
+            
+            // Check for minted token box
+            const foundBox = utxos.find(box => 
+                box.assets?.some(token => 
+                    token.tokenId === txId || // Check by token ID
+                    box.boxId === txId     // Check by box ID
+                )
+            );
+
+            if (foundBox) {
+                debugLog('Found LP token box:', foundBox);
+                return true;
+            }
+        } catch (e) {
+            debugLog('Error checking confirmation:', e);
+        }
+        attempts++;
+        debugLog('Confirmation attempt:', attempts);
+    }
+    throw new Error('Transaction confirmation timeout');
+}
+
+    async function createLP() {
+        error = null;
+        const selectedWallet = get(selected_wallet);
+
+        if (!isWalletConected()) {
+            showCustomToast('Please connect your wallet first', 1500, 'info');
+            return;
+        }
+
+        if (!isWalletErgo(selectedWallet)) {
+            showCustomToast('Please connect an Ergo wallet', 1500, 'info');
+            return;
+        }
+
+        try {
+            loading = true;
+            debugLog('Starting LP creation process');
+
             // Get wallet info
             const myAddress = selectedWallet === 'ergopay' 
                 ? get(connected_wallet_address)
@@ -40,101 +144,51 @@
                 : await ergo.get_current_height();
             const utxos = await fetchBoxes(myAddress);
 
-            debugLog('Wallet info:', { myAddress, height, utxoCount: utxos.length });
+            debugLog('Wallet info gathered:', { myAddress, height, utxoCount: utxos.length });
 
             // Step 1: Mint LP Token
             step = 2;
-            debugLog('Building mint transaction');
-            const mintTx = buildMintLPTokenTx(
-                utxos,
-                height,
-                {
-                    userAddress: myAddress,
-                    tokenId: campaign.assets.token.tokenId,
-                }
+            const mintTxId = await handleMintTransaction(
+                { myAddress, height, utxos },
+                selectedWallet
             );
 
-            if (selectedWallet === 'ergopay') {
-                ergopayState.unsignedTx = mintTx;
-                ergopayState.isAuth = false;
-                ergopayState.showErgopayModal = true;
-                onClose();
+            if (!mintTxId) {
+                // ErgoPay flow
                 return;
             }
 
-            // Sign and submit mint transaction
-            debugLog('Signing mint transaction');
-            const signedMintTx = await ergo.sign_tx(mintTx);
-            debugLog('Signed mint transaction');
+            debugLog('LP token minted:', mintTxId);
+            showCustomToast('LP token created, waiting for confirmation...', 3000, 'info');
             
-            debugLog('Submitting mint transaction');
-            const mintTxId = await ergo.submit_tx(signedMintTx);
-            debugLog('Mint transaction submitted:', mintTxId);
-
-            showCustomToast('LP token minted, creating pool...', 3000, 'info');
-
-            // Wait a moment and get fresh UTXOs
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            const updatedUtxos = await fetchBoxes(myAddress);
+            // Wait for mint transaction confirmation
+            step = 4;
+            await waitForConfirmation(mintTxId);
+            lpTokenId = mintTxId;
 
             // Step 2: Create Pool
             step = 3;
-            debugLog('Building pool transaction');
-            const poolTx = buildCreatePoolTx(
-                updatedUtxos,
-                height,
-                {
-                    userAddress: myAddress,
-                    ergAmount: campaign.assets.base.targetAmount.toString(),
-                    tokenAmount: campaign.assets.token.targetAmount.toString(),
-                    tokenId: campaign.assets.token.tokenId,
-                    tokenDecimals: campaign.assets.token.decimals,
-                    lpTokenId: mintTxId
-                }
+            // Get fresh UTXOs after mint
+            const updatedUtxos = await fetchBoxes(myAddress);
+            const poolTxId = await handlePoolTransaction(
+                { myAddress, height, utxos: updatedUtxos },
+                lpTokenId
             );
 
-            // Sign and submit pool transaction
-            debugLog('Signing pool transaction');
-            const signedPoolTx = await ergo.sign_tx(poolTx);
-            debugLog('Signed pool transaction');
-            
-            debugLog('Submitting pool transaction');
-            const poolTxId = await ergo.submit_tx(signedPoolTx);
-            debugLog('Pool transaction submitted:', poolTxId);
-
-            showCustomToast('LP pool created successfully!', 3000, 'success');
-            setTimeout(onClose, 2000);
+            if (poolTxId) {
+                debugLog('Pool created successfully:', poolTxId);
+                showCustomToast('LP pool created successfully!', 3000, 'success');
+                setTimeout(onClose, 2000);
+            }
 
         } catch (e) {
-            debugLog('Error creating LP:', e);
-            error = e?.info || e?.message || 'Failed to create LP pool';
+            debugLog('Error during LP creation:', e);
+            error = e.message || 'Failed to create LP pool';
             step = 1;
-            showCustomToast(error, 3000, 'error');
-        }
-    }
-
-    async function createLP() {
-        error = null;
-
-        if (!isWalletConected()) {
-            showCustomToast('Please connect your wallet first', 1500, 'info');
-            return;
-        }
-
-        if (!isWalletErgo(get(selected_wallet))) {
-            showCustomToast('Please connect an Ergo wallet', 1500, 'info');
-            return;
-        }
-
-        try {
-            loading = true;
-            await handleCreateLP();
-        } catch (e) {
-            debugLog('Error in createLP:', e);
-            error = e?.info || e?.message || 'Failed to create LP pool';
             showCustomToast(error, 3000, 'error');
         } finally {
             loading = false;
+            waitingForConfirmation = false;
         }
     }
 
@@ -198,8 +252,9 @@
                 <div class="text-sm text-gray-400">
                     <p class="font-medium mb-2">This process will:</p>
                     <ol class="list-decimal ml-4 space-y-1">
-                        <li>Create LP tokens in your wallet</li>
-                        <li>Create liquidity pool with your tokens</li>
+                        <li>Create and mint LP tokens</li>
+                        <li>Initialize the AMM pool</li>
+                        <li>Set initial exchange rates</li>
                     </ol>
                 </div>
 
@@ -211,29 +266,35 @@
                     {loading ? 'Processing...' : 'Create LP Pool'}
                 </button>
             </div>
-        {:else if step === 2}
+        {:else}
             <div class="space-y-6 text-center py-4">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-main-color mx-auto"></div>
                 <div>
                     <p class="text-white font-medium text-lg mb-2">
-                        Creating LP Token
+                        {#if step === 2}
+                            Creating LP Token
+                        {:else if step === 3}
+                            Initializing Pool
+                        {:else}
+                            Waiting for Confirmation
+                        {/if}
                     </p>
                     <p class="text-gray-400 text-sm">
-                        Please confirm the first transaction in your wallet
+                        {#if step === 2}
+                            Minting LP tokens...
+                        {:else if step === 3}
+                            Setting up the AMM pool...
+                        {:else}
+                            Waiting for transaction confirmation...
+                        {/if}
                     </p>
                 </div>
-            </div>
-        {:else if step === 3}
-            <div class="space-y-6 text-center py-4">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-main-color mx-auto"></div>
-                <div>
-                    <p class="text-white font-medium text-lg mb-2">
-                        Creating Pool
-                    </p>
-                    <p class="text-gray-400 text-sm">
-                        Please confirm the second transaction in your wallet
-                    </p>
-                </div>
+                
+                {#if step !== 4}
+                    <div class="text-sm text-gray-400">
+                        Please confirm the transaction in your wallet
+                    </div>
+                {/if}
             </div>
         {/if}
 
