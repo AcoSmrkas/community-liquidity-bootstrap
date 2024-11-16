@@ -20,10 +20,11 @@ export const FUNDING_CAMPAIGNS = {
     ergo: [
         {
             id: 1,
-            title: "ERG/RSIAG Pool",
-            description: "Support Ergo-based liquidity pool for ERG-RSIAG pair.",
+            title: "ERG/USELESS",
+            description: "Alpha testing for building an initial useless-erg pair for memes.",
             recipientAddress: "9hq7R1zrrUAmLp2Row7tMJwXhFYxSQf2Zn8UDrN6zJhzNQnnPiF",
             endDate: "2024-12-31",
+            mintNewToken: true,
             assets: {
                 base: {
                     name: "ERG",
@@ -33,11 +34,11 @@ export const FUNDING_CAMPAIGNS = {
                     decimals: 9
                 },
                 token: {
-                    name: "RSIAG",
-                    tokenId: "a50d95830f150f8ffb5da1a65e2313b1269807a855e30cd2f0b3fbaee0a47386",
-                    icon: "https://spectrum.fi/logos/cardano/5d16cc1a177b5d9ba9cfa9793b07e60f1fb70fea1f8aef064415d114494147.webp?OqybPLDEPp",
-                    targetAmount: 100000,
-                    decimals: 6
+                    name: "",
+                    tokenId: "",
+                    icon: "",
+                    targetAmount: 0,
+                    decimals: 0
                 }
             }
         },
@@ -47,6 +48,7 @@ export const FUNDING_CAMPAIGNS = {
             description: "Support Ergo-based liquidity pool for ERG-RSSNEK pair.",
             recipientAddress: "9hq7R1zrrUAmLp2Row7tMJwXhFYxSQf2Zn8UDrN6zJhzNQnnPiF",
             endDate: "2024-12-31",
+            mintNewToken: false,
             assets: {
                 base: {
                     name: "ERG",
@@ -66,29 +68,6 @@ export const FUNDING_CAMPAIGNS = {
         }
     ],
     cardano: [
-        {
-            id: 2,
-            title: "ADA/SNEK Pool",
-            description: "Support Cardano-based liquidity pool for ADA-SNEK pair.",
-            recipientAddress: "addr1q82946608zxkl8v2juvgptrkp64hktzs57m8rkffd42mpd3x27743ccqz5v5uvsqttwhm9el0wyqrl9nt3gchg69scgss5lul0",
-            endDate: "2024-12-31",
-            assets: {
-                base: {
-                    name: "ADA",
-                    policyId: null,
-                    icon: "/images/ada-token.png",
-                    targetAmount: 7500,
-                    decimals: 6
-                },
-                token: {
-                    name: "SNEK",
-                    policyId: "279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f",
-                    assetName: "SNEK",
-                    icon: "https://spectrum.fi/logos/cardano/279c909f348e533da5808898f87f9a14bb2c3dfbbacccd631d927a3f534e454b.webp?OqybPLDEPp",
-                    targetAmount: 100000,
-                    decimals: 0
-                }
-            }
-        }
+        // ... cardano campaigns
     ]
 };

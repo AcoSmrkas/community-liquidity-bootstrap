@@ -177,30 +177,43 @@
             <!-- Asset Selection Step -->
             <div class="space-y-4">
                 <h4 class="text-white font-medium mb-4">Select token to contribute:</h4>
-                
-                <!-- Base Asset Button -->
-                <button
-                    class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
-                    on:click={() => selectAsset(campaign.assets.base)}
-                >
-                    <img src={campaign.assets.base.icon} alt={campaign.assets.base.name} class="w-8 h-8"/>
-                    <div class="text-left">
-                        <div class="text-white font-medium">{campaign.assets.base.name}</div>
-                        <div class="text-gray-400 text-sm">Target: {campaign.assets.base.targetAmount}</div>
-                    </div>
-                </button>
 
-                <!-- Token Asset Button -->
-                <button
-                    class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
-                    on:click={() => selectAsset(campaign.assets.token)}
-                >
-                    <img src={campaign.assets.token.icon} alt={campaign.assets.token.name} class="w-8 h-8"/>
-                    <div class="text-left">
-                        <div class="text-white font-medium">{campaign.assets.token.name}</div>
-                        <div class="text-gray-400 text-sm">Target: {campaign.assets.token.targetAmount}</div>
-                    </div>
-                </button>
+                {#if campaign.mintNewToken}
+                    <!-- Only display base asset for campaigns that mint new tokens -->
+                    <button
+                        class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
+                        on:click={() => selectAsset(campaign.assets.base)}
+                    >
+                        <img src={campaign.assets.base.icon} alt={campaign.assets.base.name} class="w-8 h-8"/>
+                        <div class="text-left">
+                            <div class="text-white font-medium">{campaign.assets.base.name}</div>
+                            <div class="text-gray-400 text-sm">Target: {campaign.assets.base.targetAmount}</div>
+                        </div>
+                    </button>
+                {:else}
+                    <!-- Display both base and token assets for campaigns that create LP with provided assets -->
+                    <button
+                        class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
+                        on:click={() => selectAsset(campaign.assets.base)}
+                    >
+                        <img src={campaign.assets.base.icon} alt={campaign.assets.base.name} class="w-8 h-8"/>
+                        <div class="text-left">
+                            <div class="text-white font-medium">{campaign.assets.base.name}</div>
+                            <div class="text-gray-400 text-sm">Target: {campaign.assets.base.targetAmount}</div>
+                        </div>
+                    </button>
+
+                    <button
+                        class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
+                        on:click={() => selectAsset(campaign.assets.token)}
+                    >
+                        <img src={campaign.assets.token.icon} alt={campaign.assets.token.name} class="w-8 h-8"/>
+                        <div class="text-left">
+                            <div class="text-white font-medium">{campaign.assets.token.name}</div>
+                            <div class="text-gray-400 text-sm">Target: {campaign.assets.token.targetAmount}</div>
+                        </div>
+                    </button>
+                {/if}
             </div>
         {:else}
             <!-- Amount Input Step -->

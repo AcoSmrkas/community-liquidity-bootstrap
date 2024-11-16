@@ -10,15 +10,15 @@
     import { isWalletErgo, isWalletCardano} from '$lib/common/wallet.ts';
     import { API_HOST, FUNDING_CAMPAIGNS } from '$lib/common/const.js';
     import axios from "axios";
-        import { onMount } from 'svelte';
-        import { BigNumber } from 'bignumber.js';
+    import { onMount } from 'svelte';
+    import { BigNumber } from 'bignumber.js';
 
     let showErgopayModal = false;
     let showContributeModal = false;
     let selectedCampaign = null;
     let isAuth = false;
     let unsignedTx = null;
-  let campaignBalances = {};
+    let campaignBalances = {};
 
     async function fetchErgoBalance(address, campaign) {
         try {
@@ -123,44 +123,65 @@
     }
 
     async function updateBalances() {
+        console.log('Updating balances...');
         for (const network of Object.keys(FUNDING_CAMPAIGNS)) {
+            console.log(`Processing campaigns for network: ${network}`);
             for (const campaign of FUNDING_CAMPAIGNS[network]) {
+                console.log(`Fetching balance for campaign ID: ${campaign.id}`);
                 const balance = await (network === 'ergo' 
                     ? fetchErgoBalance(campaign.recipientAddress, campaign)
                     : fetchCardanoBalance(campaign.recipientAddress, campaign));
                 
                 if (balance) {
+                    console.log(`Balance for campaign ID ${campaign.id}:`, balance);
                     campaignBalances[campaign.id] = balance;
+                } else {
+                    console.error(`Failed to fetch balance for campaign ID: ${campaign.id}`);
                 }
             }
         }
     }
 
     onMount(() => {
+        console.log('Component mounted. Initializing balance updates...');
         updateBalances();
         // Update balances every 5 minutes
         const interval = setInterval(updateBalances, 300000);
-        return () => clearInterval(interval);
+        return () => {
+            console.log('Component unmounted. Clearing balance update interval.');
+            clearInterval(interval);
+        };
     });
+
     function openContributeModal(campaign) {
+        console.log('Opening contribute modal for campaign:', campaign);
         selectedCampaign = campaign;
         showContributeModal = true;
     }
 
     function onContributeModalClose() {
+        console.log('Closing contribute modal.');
         showContributeModal = false;
         selectedCampaign = null;
     }
 
     function handleTxSubmitted(txId) {
+        console.log('Transaction submitted. TX ID:', txId);
         if (selectedCampaign) {
             logContribution('ergo', selectedCampaign.assets.base.name, amount, txId, selectedCampaign.id);
         }
     }
 
     async function logContribution(network, asset, amount, txid, campaignId) {
+        console.log('Logging contribution...');
+        console.log('Network:', network);
+        console.log('Asset:', asset);
+        console.log('Amount:', amount);
+        console.log('Transaction ID:', txid);
+        console.log('Campaign ID:', campaignId);
+
         try {
-            await axios.post(`${API_HOST}/clb/logContribution`, {
+            const response = await axios.post(`${API_HOST}/clb/logContribution`, {
                 network,
                 asset,
                 amount,
@@ -168,14 +189,15 @@
                 txid,
                 campaignId
             });
+            console.log('Contribution logged successfully:', response.data);
         } catch (e) {
-            console.error(e);
+            console.error('Error logging contribution:', e);
         }
     }
 
     let activeTab = 'ergo';
 </script>
-<div class="container">
+
 <div class="container mx-auto px-4 py-8 text-white">
     <h1 class="text-4xl font-bold text-center mb-8">Contribute</h1>
 
@@ -199,71 +221,125 @@
         </button>
     </div>
 
-     <!-- Updated Campaign Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {#each FUNDING_CAMPAIGNS[activeTab] as campaign (campaign.id)}
-            <div class="campaign-card rounded-lg p-6 hover:shadow-lg transition-shadow">
-                <h3 class="text-xl font-bold mb-2">{campaign.title}</h3>
-                <p class="text-gray-300 text-sm mb-4">{campaign.description}</p>
-                
-                <div class="space-y-4">
-                    <!-- Base Token Progress -->
-                    <div>
-                        <div class="flex items-center  justify-between mb-2">
-                            <div class="flex items-center space-x-2">
-                                <img src={campaign.assets.base.icon} alt={campaign.assets.base.name} class="w-6 h-6"/>
-                                <span>{campaign.assets.base.name}</span>
+    <!-- New section for campaigns that mint new tokens -->
+    <div class="mt-8">
+        <h2 class="text-2xl font-bold mb-4">Campaigns Minting New Tokens</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {#each FUNDING_CAMPAIGNS[activeTab].filter(c => c.mintNewToken) as campaign (campaign.id)}
+                <!-- Campaign card code remains the same -->
+                <div class="campaign-card rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <h3 class="text-xl font-bold mb-2">{campaign.title}</h3>
+                    <p class="text-gray-300 text-sm mb-4">{campaign.description}</p>
+                    
+                    <div class="space-y-4">
+                        <!-- Base Token Progress -->
+                        <div>
+                            <div class="flex items-center  justify-between mb-2">
+                                <div class="flex items-center space-x-2">
+                                    <img src={campaign.assets.base.icon} alt={campaign.assets.base.name} class="w-6 h-6"/>
+                                    <span>{campaign.assets.base.name}</span>
+                                </div>
+                                <span class="text-sm">
+                                    {campaignBalances[campaign.id]?.baseToken?.current?.toLocaleString(undefined, {maximumFractionDigits: 2}) ?? '0'} / 
+                                    {campaign.assets.base.targetAmount.toLocaleString()}
+                                </span>
                             </div>
-                            <span class="text-sm">
-                                {campaignBalances[campaign.id]?.baseToken?.current?.toLocaleString(undefined, {maximumFractionDigits: 2}) ?? '0'} / 
-                                {campaign.assets.base.targetAmount.toLocaleString()}
-                            </span>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div 
+                                    class="bg-main-color rounded-full h-2 transition-all duration-500" 
+                                    style="width: {campaignBalances[campaign.id]?.baseToken?.percentage ?? 0}%"
+                                />
+                            </div>
                         </div>
-                        <div class="w-full bg-gray-700 rounded-full h-2">
-                            <div 
-                                class="bg-main-color rounded-full h-2 transition-all duration-500" 
-                                style="width: {campaignBalances[campaign.id]?.baseToken?.percentage ?? 0}%"
-                            />
+
+                        <!-- Project Token Progress -->
+                        <!-- Project token progress is not applicable for campaigns that mint new tokens -->
+                    </div>
+
+                    <div class="mt-4 text-sm text-gray-400">
+                        Ends: {new Date(campaign.endDate).toLocaleDateString()}
+                    </div>
+
+                    <button
+                        class="contribute-btn w-full mt-4 px-4 py-2 rounded-lg text-black transition-colors"
+                        on:click={() => openContributeModal(campaign)}
+                    >
+                        Contribute
+                    </button>
+                </div>
+            {/each}
+        </div>
+    </div>
+
+    <!-- Existing section for campaigns that create LP with provided assets -->
+    <div class="mt-8">
+        <h2 class="text-2xl font-bold mb-4">Campaigns Creating LP with Provided Assets</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {#each FUNDING_CAMPAIGNS[activeTab].filter(c => !c.mintNewToken) as campaign (campaign.id)}
+                <!-- Campaign card code remains the same -->
+                <div class="campaign-card rounded-lg p-6 hover:shadow-lg transition-shadow">
+                    <h3 class="text-xl font-bold mb-2">{campaign.title}</h3>
+                    <p class="text-gray-300 text-sm mb-4">{campaign.description}</p>
+                    
+                    <div class="space-y-4">
+                        <!-- Base Token Progress -->
+                        <div>
+                            <div class="flex items-center  justify-between mb-2">
+                                <div class="flex items-center space-x-2">
+                                    <img src={campaign.assets.base.icon} alt={campaign.assets.base.name} class="w-6 h-6"/>
+                                    <span>{campaign.assets.base.name}</span>
+                                </div>
+                                <span class="text-sm">
+                                    {campaignBalances[campaign.id]?.baseToken?.current?.toLocaleString(undefined, {maximumFractionDigits: 2}) ?? '0'} / 
+                                    {campaign.assets.base.targetAmount.toLocaleString()}
+                                </span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div 
+                                    class="bg-main-color rounded-full h-2 transition-all duration-500" 
+                                    style="width: {campaignBalances[campaign.id]?.baseToken?.percentage ?? 0}%"
+                                />
+                            </div>
+                        </div>
+
+                        <!-- Project Token Progress -->
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center space-x-2">
+                                    <img src={campaign.assets.token.icon} alt={campaign.assets.token.name} class="w-6 h-6"/>
+                                    <span>{campaign.assets.token.name}</span>
+                                </div>
+                                <span class="text-sm">
+                                    {campaignBalances[campaign.id]?.projectToken?.current?.toLocaleString(undefined, {maximumFractionDigits: 2}) ?? '0'} / 
+                                    {campaign.assets.token.targetAmount.toLocaleString()}
+                                </span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div 
+                                    class="bg-main-color rounded-full h-2 transition-all duration-500" 
+                                    style="width: {campaignBalances[campaign.id]?.projectToken?.percentage ?? 0}%"
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Project Token Progress -->
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center space-x-2">
-                                <img src={campaign.assets.token.icon} alt={campaign.assets.token.name} class="w-6 h-6"/>
-                                <span>{campaign.assets.token.name}</span>
-                            </div>
-                            <span class="text-sm">
-                                {campaignBalances[campaign.id]?.projectToken?.current?.toLocaleString(undefined, {maximumFractionDigits: 2}) ?? '0'} / 
-                                {campaign.assets.token.targetAmount.toLocaleString()}
-                            </span>
-                        </div>
-                        <div class="w-full bg-gray-700 rounded-full h-2">
-                            <div 
-                                class="bg-main-color rounded-full h-2 transition-all duration-500" 
-                                style="width: {campaignBalances[campaign.id]?.projectToken?.percentage ?? 0}%"
-                            />
-                        </div>
+                    <div class="mt-4 text-sm text-gray-400">
+                        Ends: {new Date(campaign.endDate).toLocaleDateString()}
                     </div>
-                </div>
 
-                <div class="mt-4 text-sm text-gray-400">
-                    Ends: {new Date(campaign.endDate).toLocaleDateString()}
+                    <button
+                        class="contribute-btn w-full mt-4 px-4 py-2 rounded-lg text-black transition-colors"
+                        on:click={() => openContributeModal(campaign)}
+                    >
+                        Contribute
+                    </button>
                 </div>
-
-                <button
-                    class="contribute-btn w-full mt-4 px-4 py-2 rounded-lg text-black transition-colors"
-                    on:click={() => openContributeModal(campaign)}
-                >
-                    Contribute
-                </button>
-            </div>
-        {/each}
+            {/each}
+        </div>
     </div>
 
 </div>
-</div>
+
 {#if showContributeModal}
     <ContributeModal 
         campaign={selectedCampaign}
