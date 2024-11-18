@@ -54,7 +54,7 @@ export const FUNDING_CAMPAIGNS = {
                 token: {
                     name: "MEOW",
                     tokenId: "", // Will be generated during minting
-                    icon: "path/to/meow/icon.svg",
+                    icon: "https://my.ergexplorer.com/images/token.png",
                     targetAmount: 1000000000, // Total supply
                     decimals: 6
                 }
@@ -103,7 +103,7 @@ export const FUNDING_CAMPAIGNS = {
                 token: {
                     name: "MEWFI",
                     tokenId: "", // Will be generated during minting
-                    icon: "path/to/mewfi/icon.svg",
+                    icon: "https://my.ergexplorer.com/images/token.png",
                     targetAmount: 20000000, // 20M tokens for IDO
                     decimals: 6
                 }
@@ -150,7 +150,7 @@ export const FUNDING_CAMPAIGNS = {
                 token: {
                     name: "NETA",
                     tokenId: "472c3d4ecaa08fb7392ff041ee2e6af75f4a558810a74b28600549d5392810e8",
-                    icon: "path/to/neta/icon.svg",
+                    icon: "https://my.ergexplorer.com/images/token.png",
                     targetAmount: 100000,
                     decimals: 6
                 }
@@ -191,14 +191,14 @@ export const FUNDING_CAMPAIGNS = {
                 base: {
                     name: "ADA",
                     tokenId: null,
-                    icon: "https://cardanoscan.io/images/cardano.svg",
+                    icon: "https://raw.githubusercontent.com/spectrum-finance/token-logos/2dee6788e99d2420a41447139db9afdc4b442948/logos/ergo/token-ada.svg",
                     targetAmount: 500000,
                     decimals: 6
                 },
                 token: {
                     name: "MDAO",
                     policyId: "asset1deejmq8zf9uhnfyhv3fl6k09ara6pfxzvhnd00", // Will be generated during minting
-                    icon: "path/to/mdao/icon.svg",
+                    icon: "https://my.ergexplorer.com/images/token.png",
                     targetAmount: 100000000,
                     decimals: 0
                 }
@@ -244,7 +244,7 @@ export const FUNDING_CAMPAIGNS = {
                 token: {
                     name: "CATCOIN",
                     policyId: "",
-                    icon: "path/to/catcoin/icon.svg",
+                    icon: "https://my.ergexplorer.com/images/token.png",
                     targetAmount: 1000000000,
                     decimals: 6
                 }
@@ -290,7 +290,7 @@ export const FUNDING_CAMPAIGNS = {
                 token: {
                     name: "MIN",
                     policyId: "8a1cfae21368b8bebbbed9800fec304e95cce39a2a57dc35e2e3ebaa",
-                    icon: "path/to/min/icon.svg",
+                    icon: "https://my.ergexplorer.com/images/token.png",
                     targetAmount: 1000000,
                     decimals: 6
                 }
@@ -335,7 +335,7 @@ export const FUNDING_CAMPAIGNS = {
                 token: {
                     name: "AGIX",
                     policyId: "f43a62fdc3965df486de8a0d32fe800963589c41b37093b6446a79f4",
-                    icon: "path/to/agix/icon.svg",
+                    icon: "https://my.ergexplorer.com/images/token.png",
                     targetAmount: 2000000,
                     decimals: 6
                 }

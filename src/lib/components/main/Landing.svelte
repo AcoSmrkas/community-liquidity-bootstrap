@@ -20,7 +20,7 @@
   );
 </script>
 
-<div class="container mx-auto px-4">
+<div class="container mx-auto px-4 mt-5">
   <!-- Hero Section -->
   <section class="py-20 text-center">
     <div class="max-w-4xl mx-auto">
