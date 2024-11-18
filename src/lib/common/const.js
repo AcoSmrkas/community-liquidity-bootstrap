@@ -1,7 +1,7 @@
 //landing page and header navbar
 export const MART_NAME = 'MewCLB';
 export const JUST_NAME = 'Mew CLB';
-export const LOGO_TEXT = '<span style="color:cyan;font-family:Satisfy;font-size:1.3em;margin-right:3px;">Mew</span> FUND';
+export const LOGO_TEXT = '<span style="color:cyan;font-family:Satisfy;font-size:1.3em;margin-right:3px;">Mew</span> Fund';
 export const FOOTER_TEXT = '<span style="color:cyan;font-family:Satisfy;font-size:1.3em;">Mew </span> Finance';
 export const HERO_DESCRIPTION = 'The first Community Liquidity Boostrap on the Ergo Blockchain.';
 export const HERO_IMAGE = 'https://crooks-fi.com/images/mascot-splash.png';
@@ -71,7 +71,7 @@ export const FUNDING_CAMPAIGNS = {
         {
             id: 2,
             title: "MewFi Token Launch",
-            description: "Initial DEX Offering for MewFi - The first cross-chain DEX aggregator built on Ergo.",
+            description: "Initial DEX Offering for Mew Finance - The first cross-chain DEX aggregator built on Ergo.",
             recipientAddress: "9hq7R1zrrUAmLp2Row7tMJwXhFYxSQf2Zn8UDrN6zJhzNQnnPiF",
             endDate: "2024-12-31",
             mintNewToken: true,
@@ -224,8 +224,9 @@ export const FUNDING_CAMPAIGNS = {
                 targetRaise: 100000, // ADA to raise
                 minContribution: 50,
                 maxContribution: 10000,
-    
-                liquidityLockPeriod: "6 months"
+                liquidityInfo: "80% of raised ADA will be used for initial liquidity",
+                liquidityLockPeriod: "12 months",
+                vestingSchedule: "6 months linear vesting"
             },
             status: {
                 phase: "upcoming",
