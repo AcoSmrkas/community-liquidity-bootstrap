@@ -1,13 +1,19 @@
-// sendErgoTx.ts
-import { OutputBuilder, TransactionBuilder, TokensCollection, SAFE_MIN_BOX_VALUE, ErgoAddress, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
-import { RECIPIENT_ADDRESS_ERGO } from "$lib/common/const.js";
+import { 
+    OutputBuilder, 
+    TransactionBuilder, 
+    TokensCollection, 
+    SAFE_MIN_BOX_VALUE, 
+    ErgoAddress, 
+    RECOMMENDED_MIN_FEE_VALUE 
+} from "@fleet-sdk/core";
+import { MEW_FEE_ADDRESS_ERGO, MEW_FEE_PERCENTAGE } from "$lib/common/const.js";
 import { BigNumber } from 'bignumber.js';
 
 export async function sendErgoTx(
     userBase58PK: string,
     userUtxos: Array<any>,
     assetName: string,
-    amount: string, // Changed to string to prevent floating point issues
+    amount: string,
     height: number,
     campaignId: number,
     tokenId: string | null,
@@ -15,24 +21,39 @@ export async function sendErgoTx(
     decimals: number
 ): any {
     const userAddress = ErgoAddress.fromBase58(userBase58PK);
-    let ergValue = SAFE_MIN_BOX_VALUE;
+    let totalErgValue = SAFE_MIN_BOX_VALUE;
+    let campaignValue = SAFE_MIN_BOX_VALUE;
+    let feeValue = SAFE_MIN_BOX_VALUE;
   
     if (assetName === "ERG") {
-        // User inputs 1 ERG, we convert to 1000000000 nanoERG
-        ergValue = new BigNumber(amount).times(10 ** 9).integerValue();
+        // Calculate total amount in nanoERG
+        totalErgValue = new BigNumber(amount).times(10 ** 9).integerValue();
+        
+        // Calculate fee amount (1%)
+        feeValue = totalErgValue.multipliedBy(MEW_FEE_PERCENTAGE).dividedBy(100).integerValue();
+        
+        // Calculate campaign amount (remaining after fee)
+        campaignValue = totalErgValue.minus(feeValue).integerValue();
     }
 
-    const sendBox = new OutputBuilder(
-        ergValue,
+    // Create campaign output box
+    const campaignBox = new OutputBuilder(
+        campaignValue,
         recipientAddress
     );
     
+    // Create fee output box
+    const feeBox = new OutputBuilder(
+        feeValue,
+        MEW_FEE_ADDRESS_ERGO
+    );
+    
     if (tokenId) {
-        // User inputs 100 tokens, we convert to smallest unit based on decimals
+        // Handle token distribution
         const tokenAmount = new BigNumber(amount).times(10 ** decimals).integerValue();
         console.log(`Converting ${amount} ${assetName} to ${tokenAmount} base units`);
         
-        sendBox.addTokens(new TokensCollection([{
+        campaignBox.addTokens(new TokensCollection([{
             tokenId: tokenId,
             amount: tokenAmount
         }]));
@@ -44,7 +65,7 @@ export async function sendErgoTx(
             selector.ensureInclusion(userUtxos.map(utxo => utxo.boxId))
         )
         .from(userUtxos)
-        .to([sendBox])
+        .to([campaignBox, feeBox]) // Add both campaign and fee boxes
         .sendChangeTo(userAddress)
         .payFee(RECOMMENDED_MIN_FEE_VALUE)
         .build()

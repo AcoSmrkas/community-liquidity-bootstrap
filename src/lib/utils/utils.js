@@ -64,8 +64,8 @@ export function nFormatter(num) {
   const lookup = [
     { value: 1, symbol: '' },
   //  { value: 1e3, symbol: "k" },
-    { value: 1e6, symbol: 'M' },
-    { value: 1e9, symbol: 'B' },
+  //  { value: 1e6, symbol: 'M' },
+   // { value: 1e9, symbol: 'B' },
     { value: 1e12, symbol: 'T' },
     { value: 1e15, symbol: 'P' },
     { value: 1e18, symbol: 'E' }
@@ -156,6 +156,61 @@ export function showCustomToast(text, time, type = 'default') {
       toast.hide();
     });
   }
+}
+// utils.js
+
+// ... (keep your existing utility functions)
+
+/**
+ * Calculate time remaining until a given end date
+ * @param {string|Date} endDate - The end date to calculate time until
+ * @returns {string} Formatted time remaining string
+ */
+export function calculateTimeLeft(endDate) {
+  const end = new Date(endDate).getTime();
+  const now = new Date().getTime();
+  const distance = end - now;
+
+  // If the date has passed
+  if (distance < 0) {
+      return 'Ended';
+  }
+
+  // Calculate time units
+  const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+  
+  // Format the output
+  if (days > 0) {
+      return `${days}d ${hours}h`;
+  } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+  } else if (minutes > 0) {
+      return `${minutes}m`;
+  } else {
+      return 'Ending soon';
+  }
+}
+
+/**
+* Format a number with commas and specified decimal places
+* @param {number|string} num - Number to format
+* @param {number} decimals - Number of decimal places (default: 2)
+* @returns {string} Formatted number string
+*/
+export function formatNumber(num, decimals = 2) {
+  if (!num) return '0';
+  
+  const parts = Number(num).toFixed(decimals).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  
+  // Remove trailing zeros after decimal
+  if (parts[1]) {
+      parts[1] = parts[1].replace(/0+$/, '');
+      return parts[1].length > 0 ? parts.join('.') : parts[0];
+  }
+  return parts[0];
 }
 
 export async function getConnectedWalletAddress() {
