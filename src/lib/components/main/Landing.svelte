@@ -164,7 +164,7 @@
                   on:error={(e) => e.target.src = "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg"}
                 />
                 <span class="text-white">
-                  {nFormatter(campaign.token_target_amount)} 
+                  {nFormatter(campaign.target_raise)} 
                   <span class="text-primary font-bold">{campaign.token_name}</span>
                 </span>
               </div>
