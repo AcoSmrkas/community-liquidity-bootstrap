@@ -377,7 +377,7 @@ function handleTxSubmitted(event) {
                                 Raised: {(campaignBalances[campaign.id]?.baseToken?.current || 0).toLocaleString()} {campaign.base_name}
                             </div>
                             <div class="text-gray-400">
-                                Target: {campaign.base_target_amount.toLocaleString()} {campaign.base_name}
+                                Target: {campaign.target_raise.toLocaleString()} {campaign.base_name}
                             </div>
                         </div>
                     </div>
