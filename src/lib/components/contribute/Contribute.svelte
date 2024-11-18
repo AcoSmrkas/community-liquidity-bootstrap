@@ -51,13 +51,13 @@
                 if (campaign.base_name === 'ERG') {
                     const response = await axios.get(`https://api.ergoplatform.com/api/v1/addresses/${campaign.recipient_address}/balance/total`);
                     balance = response.data.confirmed.nanoErgs / Math.pow(10, 9);
-                    percentage = Math.min((balance / parseFloat(campaign.base_target_amount)) * 100, 100);
+                    percentage = Math.min((balance / parseFloat(campaign.target_raise)) * 100, 100);
                 } else {
                     // Fetch token balance for non-ERG campaigns
                     const response = await axios.get(`https://api.ergoplatform.com/api/v1/addresses/${campaign.recipient_address}/balance/total`);
                     const token = response.data.confirmed.tokens.find(t => t.tokenId === campaign.base_token_id);
                     balance = token ? token.amount / Math.pow(10, token.decimals) : 0;
-                    percentage = Math.min((balance / parseFloat(campaign.base_target_amount)) * 100, 100);
+                    percentage = Math.min((balance / parseFloat(campaign.target_raise)) * 100, 100);
                 }
 
                 newBalances[campaign.id] = {
@@ -86,7 +86,7 @@
         if (now > endDate) return 'ended';
         
         const baseBalance = campaignBalances[campaign.id]?.baseToken?.current || 0;
-        const baseTarget = parseFloat(campaign.base_target_amount) || 0;
+        const baseTarget = parseFloat(campaign.target_raise) || 0;
         
         if (baseBalance >= baseTarget) return 'ended';
         
@@ -176,6 +176,34 @@
             // Handle user rejection silently
         } else {
             showCustomToast(`Failed to submit TX.`, 5000, 'danger');
+        }
+    }
+
+    function getDisclaimerMessage(campaign) {
+        const liquidityPercentage = parseFloat(campaign.liquidity_info);
+        if (liquidityPercentage === 100) {
+            return 'This campaign is providing 100% of the funds raised as liquidity.';
+        } else if (liquidityPercentage >= 75) {
+            return 'This campaign is providing a high percentage (75% or more) of the funds raised as liquidity.';
+        } else if (liquidityPercentage >= 50) {
+            return 'This campaign is providing a moderate percentage (50% or more) of the funds raised as liquidity.';
+        } else if (liquidityPercentage >= 25) {
+            return 'This campaign is providing a low percentage (25% or more) of the funds raised as liquidity.';
+        } else {
+            return 'This campaign is providing a very low percentage (less than 25%) of the funds raised as liquidity.';
+        }
+    }
+
+    function getLiquidityBorderColor(campaign) {
+        const liquidityPercentage = parseFloat(campaign.liquidity_info);
+        if (liquidityPercentage >= 75) {
+            return 'border-green-500';
+        } else if (liquidityPercentage >= 50) {
+            return 'border-yellow-500';
+        } else if (liquidityPercentage >= 25) {
+            return 'border-orange-500';
+        } else {
+            return 'border-red-500';
         }
     }
     async function handleContribution(event) {
@@ -273,6 +301,8 @@ function handleTxSubmitted(event) {
         const interval = setInterval(updateBalances, 300000);
         return () => clearInterval(interval);
     });
+    
+
 </script>
 <div class="container top-margin text-white mb-5">
     <div class="container mx-auto px-0 max-w-6xl">
@@ -298,294 +328,162 @@ function handleTxSubmitted(event) {
             </button>
         </div>
 
-        <!-- Token Minting Campaigns -->
-        <div class="mt-12">
-            <h2 class="text-2xl font-bold mb-4">Campaigns Minting New Tokens</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-12">
-                {#each campaigns.filter(c => c.network === activeTab && c.mint_new_token === true) as campaign (campaign.id)}
-                    <div 
-                        class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all overflow-hidden"
-                        class:opacity-75={getCampaignStatus(campaign) === 'ended'}
-                    >
-                        <!-- Header -->
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="text-xl font-bold text-primary mb-2">{campaign.title}</h3>
-                                <p class="text-gray-400 text-sm">{campaign.description}</p>
-                            </div>
-                            <div class="mt-[3px] px-3 py-1 rounded-full text-xs capitalize" 
-                                class:bg-green-500={campaign.status_phase === 'active'}
-                                class:bg-yellow-500={campaign.status_phase === 'upcoming'}
-                                class:bg-red-500={campaign.status_phase === 'ended'}>
-                                {campaign.status_phase}
-                            </div>
+        <!-- Campaigns -->
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+            {#each campaigns.filter(c => c.network === activeTab) as campaign (campaign.id)}
+                <div 
+                    class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all overflow-hidden"
+                    class:opacity-75={getCampaignStatus(campaign) === 'ended'}
+                >
+                    <!-- Header -->
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-primary mb-2">{campaign.title}</h2>
+                            <p class="text-gray-400 text-sm">{campaign.description}</p>
                         </div>
-
-                        <!-- Progress Section -->
-                        <div class="mb-6">
-                            <div class="flex justify-between items-center mb-2">
-                                <div class="text-gray-400 text-sm">Progress</div>
-                                <div class="text-white text-sm font-medium">
-                                    {(campaignBalances[campaign.id]?.baseToken?.percentage || 0).toFixed(2)}%
-                                </div>
-                            </div>
-                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
-                                <div 
-                                    class="bg-cyan-500 rounded-full h-2 transition-all duration-500" 
-                                    style="width: {campaignBalances[campaign.id]?.baseToken?.percentage || 0}%"
-                                />
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <div class="text-gray-400">
-                                    Raised: {(campaignBalances[campaign.id]?.baseToken?.current || 0).toLocaleString()} {campaign.base_name}
-                                </div>
-                                <div class="text-gray-400">
-                                    Target: {campaign.target_raise.toLocaleString()} {campaign.base_name}
-                                </div>
-                            </div>
+                        <div class="mt-[3px] px-3 py-1 rounded-full text-xs capitalize" 
+                            class:bg-green-500={campaign.status_phase === 'active'}
+                            class:bg-yellow-500={campaign.status_phase === 'upcoming'}
+                            class:bg-red-500={campaign.status_phase === 'ended'}>
+                            {campaign.status_phase}
                         </div>
-<!-- Contribution Limits -->
-<div class="flex justify-between mb-6 text-sm">
-    <div>
-        <div class="text-gray-400 mb-1">Supply</div>
-        <div class="text-white">   {#if campaign.total_supply}
-            <div class="text-gray-400 mt-2"> {campaign.total_supply}</div>
-        {/if}</div>
-    </div>
-</div>
-                        <!-- Contribution Limits -->
-                        <div class="flex justify-between mb-6 text-sm">
-                            {#if campaign.initial_price}  <div>
-                                <div class="text-gray-400 mb-1">Initial Price:</div>
-                                <div class="text-white">{campaign.initial_price}</div>
-                            </div> {/if}
-                            <div>
-                                <div class="text-gray-400 mb-1">Min Contribution</div>
-                                <div class="text-white">{nFormatter(campaign.min_contribution)} {campaign.base_name}</div>
-                            </div>
-                            <div>
-                                <div class="text-gray-400 mb-1">Max Contribution</div>
-                                <div class="text-white">{nFormatter(campaign.max_contribution)} {campaign.base_name}</div>
-                            </div>
-                            <div>
-                                <div class="text-gray-400 mb-1">Platform Fee</div>
-                                <div class="text-white">{MEW_FEE_PERCENTAGE}%</div>
-                            </div>
-                          
-                        </div>
-
-                     
-
-                 <!-- Social Links -->
-{#if campaign.website || campaign.telegram || campaign.twitter || campaign.discord}
-<div class="mt-3 flex space-x-4 mb-3 justify-evenly">
-    {#if campaign.website}
-        <a
-            href={campaign.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-gray-400 hover:text-cyan-500 transition-colors"
-            title="Website"
-        >
-            <Globe size={20} />
-        </a>
-    {/if}
-    {#if campaign.telegram}
-        <a
-            href={campaign.telegram}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-gray-400 hover:text-cyan-500 transition-colors"
-            title="Telegram"
-        >
-            <MessageCircle size={20} />
-        </a>
-    {/if}
-    {#if campaign.twitter}
-        <a
-            href={campaign.twitter}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-gray-400 hover:text-cyan-500 transition-colors"
-            title="Twitter"
-        >
-            <Twitter size={20} />
-        </a>
-    {/if}
-    {#if campaign.discord}
-        <a
-            href={campaign.discord}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-gray-400 hover:text-cyan-500 transition-colors"
-            title="Discord"
-        >
-            <MessagesSquare size={20} />
-        </a>
-    {/if}
-</div>
-{/if}
-
-                        <!-- Action Button -->
-                        <button
-                            class="w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg 
-                                   transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            on:click={() => {
-                                if (getCampaignStatus(campaign) === 'active') {
-                                    selectedCampaign = campaign;
-                                    showContributeModal = true;
-                                }
-                            }}
-                            disabled={getCampaignStatus(campaign) !== 'active'}
-                        >
-                            {#if getCampaignStatus(campaign) === 'active'}
-                                Contribute
-                            {:else if getCampaignStatus(campaign) === 'upcoming'}
-                                Coming Soon
-                            {:else}
-                                Campaign Ended
-                            {/if}
-                        </button>
                     </div>
-                {/each}
-            </div>
+     <!-- Disclaimer -->
+     {#if getDisclaimerMessage(campaign)}
+     <div class="bg-var(--forms-bg) border {getLiquidityBorderColor(campaign)} p-3 rounded-lg mb-4 flex items-center">
+         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 {getLiquidityBorderColor(campaign)}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+         </svg>
+         <p class="text-white font-medium text-sm">{getDisclaimerMessage(campaign)}</p>
+     </div>
+ {/if}
 
-            <!-- LP Creation Campaigns -->
-            <h2 class="text-2xl font-bold mb-4">Campaigns Creating LP with Provided Assets</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                {#each campaigns.filter(c => c.network === activeTab && c.mint_new_token === false) as campaign (campaign.id)}
-                    <div 
-                        class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all overflow-hidden"
-                        class:opacity-75={getCampaignStatus(campaign) === 'ended'}
-                    >
-                        <!-- Header -->
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="text-xl font-bold text-primary mb-2">{campaign.title}</h3>
-                                <p class="text-gray-400 text-sm">{campaign.description}</p>
-                            </div>
-                            <div class="mt-[3px] px-3 py-1 rounded-full text-xs capitalize" 
-                                class:bg-green-500={campaign.status_phase === 'active'}
-                                class:bg-yellow-500={campaign.status_phase === 'upcoming'}
-                                class:bg-red-500={campaign.status_phase === 'ended'}>
-                                {campaign.status_phase}
+                    <!-- Progress Section -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="text-gray-400 text-sm">Progress</div>
+                            <div class="text-white text-sm font-medium">
+                                {(campaignBalances[campaign.id]?.baseToken?.percentage || 0).toFixed(2)}%
                             </div>
                         </div>
-
-                        <!-- Progress Section -->
-                        <div class="mb-6">
-                            <div class="flex justify-between items-center mb-2">
-                                <div class="text-gray-400 text-sm">Progress</div>
-                                <div class="text-white text-sm font-medium">
-                                    {(campaignBalances[campaign.id]?.baseToken?.percentage || 0).toFixed(2)}%
-                                </div>
+                        <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                            <div 
+                                class="bg-cyan-500 rounded-full h-2 transition-all duration-500" 
+                                style="width: {campaignBalances[campaign.id]?.baseToken?.percentage || 0}%"
+                            />
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <div class="text-gray-400">
+                                Raised: {(campaignBalances[campaign.id]?.baseToken?.current || 0).toLocaleString()} {campaign.base_name}
                             </div>
-                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
-                                <div 
-                                    class="bg-cyan-500 rounded-full h-2 transition-all duration-500" 
-                                    style="width: {campaignBalances[campaign.id]?.baseToken?.percentage || 0}%"
-                                />
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <div class="text-gray-400">
-                                    Raised: {(campaignBalances[campaign.id]?.baseToken?.current || 0).toLocaleString()} {campaign.base_name}
-                                </div>
-                                <div class="text-gray-400">
-                                    Target: {campaign.base_target_amount.toLocaleString()} {campaign.base_name}
-                                </div>
+                            <div class="text-gray-400">
+                                Target: {campaign.base_target_amount.toLocaleString()} {campaign.base_name}
                             </div>
                         </div>
-
-                        <!-- Contribution Limits -->
-                        <div class="flex justify-between mb-6 text-sm">
-                            <div>
-                                <div class="text-gray-400 mb-1">Min Contribution</div>
-                                <div class="text-white">{nFormatter(campaign.min_contribution)} {campaign.base_name}</div>
-                            </div>
-                            <div>
-                                <div class="text-gray-400 mb-1">Max Contribution</div>
-                                <div class="text-white">{nFormatter(campaign.max_contribution)} {campaign.base_name}</div>
-                            </div>
-                            <div>
-                                <div class="text-gray-400 mb-1">Platform Fee</div>
-                                <div class="text-white">{MEW_FEE_PERCENTAGE}%</div>
-                            </div>
-                        </div>
-
-                     
-<!-- Social Links -->
-{#if campaign.website || campaign.telegram || campaign.twitter || campaign.discord}
-    <div class="mt-3 flex space-x-4 mb-3 justify-evenly">
-        {#if campaign.website}
-            <a
-                href={campaign.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-gray-400 hover:text-cyan-500 transition-colors"
-                title="Website"
-            >
-                <Globe size={20} />
-            </a>
-        {/if}
-        {#if campaign.telegram}
-            <a
-                href={campaign.telegram}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-gray-400 hover:text-cyan-500 transition-colors"
-                title="Telegram"
-            >
-                <MessageCircle size={20} />
-            </a>
-        {/if}
-        {#if campaign.twitter}
-            <a
-                href={campaign.twitter}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-gray-400 hover:text-cyan-500 transition-colors"
-                title="Twitter"
-            >
-                <Twitter size={20} />
-            </a>
-        {/if}
-        {#if campaign.discord}
-            <a
-                href={campaign.discord}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="text-gray-400 hover:text-cyan-500 transition-colors"
-                title="Discord"
-            >
-                <MessagesSquare size={20} />
-            </a>
-        {/if}
-    </div>
-{/if}
-
-                        <!-- Action Button -->
-                        <button
-                            class="w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg 
-                                   transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            on:click={() => {
-                                if (getCampaignStatus(campaign) === 'active') {
-                                    selectedCampaign = campaign;
-                                    showContributeModal = true;
-                                }
-                            }}
-                            disabled={getCampaignStatus(campaign) !== 'active'}
-                        >
-                            {#if getCampaignStatus(campaign) === 'active'}
-                                Contribute
-                            {:else if getCampaignStatus(campaign) === 'upcoming'}
-                                Coming Soon
-                            {:else}
-                                Campaign Ended
-                            {/if}
-                        </button>
                     </div>
-                {/each}
-            </div>
+
+                    <!-- Campaign Details -->
+                    <div class="flex flex-col md:flex-row justify-between mb-6 text-sm">
+                        <div>
+                            <div class="text-gray-400 mb-1">Supply</div>
+                            <div class="text-white">
+                                {#if campaign.total_supply}
+                                    {campaign.total_supply.toLocaleString()}
+                                {/if}
+                            </div>
+                        </div>
+                        {#if campaign.initial_price}
+                            <div>
+                                <div class="text-gray-400 mb-1">Initial Price</div>
+                                <div class="text-white">{campaign.initial_price} {campaign.base_name}</div>
+                            </div>
+                        {/if}
+                        <div>
+                            <div class="text-gray-400 mb-1">Min Contribution</div>
+                            <div class="text-white">{nFormatter(campaign.min_contribution)} {campaign.base_name}</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400 mb-1">Max Contribution</div>
+                            <div class="text-white">{nFormatter(campaign.max_contribution)} {campaign.base_name}</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400 mb-1">Platform Fee</div>
+                            <div class="text-white">{MEW_FEE_PERCENTAGE}%</div>
+                        </div>
+                    </div>
+
+                    <!-- Social Links -->
+                    {#if campaign.website || campaign.telegram || campaign.twitter || campaign.discord}
+                        <div class="mt-3 flex space-x-4 mb-3 justify-evenly">
+                            {#if campaign.website}
+                                <a
+                                    href={campaign.website}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-gray-400 hover:text-cyan-500 transition-colors"
+                                    title="Website"
+                                >
+                                    <Globe size={20} />
+                                </a>
+                            {/if}
+                            {#if campaign.telegram}
+                                <a
+                                    href={campaign.telegram}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-gray-400 hover:text-cyan-500 transition-colors"
+                                    title="Telegram"
+                                >
+                                    <MessageCircle size={20} />
+                                </a>
+                            {/if}
+                            {#if campaign.twitter}
+                                <a
+                                    href={campaign.twitter}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-gray-400 hover:text-cyan-500 transition-colors"
+                                    title="Twitter"
+                                >
+                                    <Twitter size={20} />
+                                </a>
+                            {/if}
+                            {#if campaign.discord}
+                                <a
+                                    href={campaign.discord}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="text-gray-400 hover:text-cyan-500 transition-colors"
+                                    title="Discord"
+                                >
+                                    <MessagesSquare size={20} />
+                                </a>
+                            {/if}
+                        </div>
+                    {/if}
+
+                    <!-- Action Button -->
+                    <button
+                        class="w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg 
+                               transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        on:click={() => {
+                            if (getCampaignStatus(campaign) === 'active') {
+                                selectedCampaign = campaign;
+                                showContributeModal = true;
+                            }
+                        }}
+                        disabled={getCampaignStatus(campaign) !== 'active'}
+                    >
+                        {#if getCampaignStatus(campaign) === 'active'}
+                            Contribute
+                        {:else if getCampaignStatus(campaign) === 'upcoming'}
+                            Coming Soon
+                        {:else}
+                            Campaign Ended
+                        {/if}
+                    </button>
+                </div>
+            {/each}
         </div>
     </div>
 </div>
