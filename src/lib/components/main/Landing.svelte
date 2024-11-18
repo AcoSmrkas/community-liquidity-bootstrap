@@ -1,27 +1,59 @@
 <script lang="ts">
-  import { HERO_DESCRIPTION, LOGO_TEXT, FUNDING_CAMPAIGNS } from '$lib/common/const.js';
+  import { HERO_DESCRIPTION, LOGO_TEXT, API_HOST } from '$lib/common/const.js';
   import { connected_wallet_address } from "$lib/store/store";
   import { nFormatter } from '$lib/utils/utils.js';
+  import { onMount } from 'svelte';
+  import axios from "axios";
 
   let walletConnected = false;
+  let campaigns = [];
+  let loading = true;
+  let stats = {
+    totalCampaigns: 0,
+    totalErgoTarget: 0,
+    totalCardanoTarget: 0
+  };
   
   $: connected_wallet_address.subscribe((value) => {
     walletConnected = value !== '';
   });
 
-  // Calculate total stats
-  $: totalErgoTargetAmount = FUNDING_CAMPAIGNS.ergo.reduce(
-    (sum, campaign) => sum + campaign.assets.base.targetAmount, 
-    0
-  );
-  $: totalCardanoTargetAmount = FUNDING_CAMPAIGNS.cardano.reduce(
-    (sum, campaign) => sum + campaign.assets.base.targetAmount, 
-    0
-  );
+  async function fetchCampaigns() {
+    try {
+      const response = await axios.get(`${API_HOST}/mew/fund/getCampaigns`);
+      if (response.data?.items) {
+        campaigns = response.data.items.map(campaign => ({
+          ...campaign,
+          network: campaign.base_name === 'ERG' ? 'ergo' : 'cardano'
+        }));
+
+        // Calculate stats
+        stats = campaigns.reduce((acc, campaign) => {
+          acc.totalCampaigns++;
+          if (campaign.network === 'ergo') {
+            acc.totalErgoTarget += parseFloat(campaign.base_target_amount) || 0;
+          } else {
+            acc.totalCardanoTarget += parseFloat(campaign.base_target_amount) || 0;
+          }
+          return acc;
+        }, {
+          totalCampaigns: 0,
+          totalErgoTarget: 0,
+          totalCardanoTarget: 0
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch campaigns:', error);
+    } finally {
+      loading = false;
+    }
+  }
+
+  onMount(fetchCampaigns);
 </script>
 
 <div class="container mx-auto px-4 mt-5">
-  <!-- Hero Section -->
+  <!-- Hero Section remains the same -->
   <section class="py-20 text-center">
     <div class="max-w-4xl mx-auto">
       <h1 class="text-5xl md:text-6xl font-bold text-white mb-6" style="font-family:'Manrope';">
@@ -41,19 +73,25 @@
     </div>
   </section>
 
-  <!-- Stats Section -->
+  <!-- Updated Stats Section -->
   <section class="pb-[75px]">
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <div class="stat-card p-[30px]">
-        <h3 class="text-2xl font-bold text-main mb-2">{FUNDING_CAMPAIGNS.ergo.length + FUNDING_CAMPAIGNS.cardano.length}</h3>
+        <h3 class="text-2xl font-bold text-main mb-2">
+          {loading ? '...' : stats.totalCampaigns}
+        </h3>
         <p class="text-gray-300">Active Campaigns</p>
       </div>
       <div class="stat-card p-[30px]">
-        <h3 class="text-2xl font-bold text-main mb-2">{nFormatter(totalErgoTargetAmount)} ERG</h3>
+        <h3 class="text-2xl font-bold text-main mb-2">
+          {loading ? '...' : `${nFormatter(stats.totalErgoTarget)} ERG`}
+        </h3>
         <p class="text-gray-300">Total ERG Target</p>
       </div>
       <div class="stat-card p-[30px]">
-        <h3 class="text-2xl font-bold text-main mb-2">{nFormatter(totalCardanoTargetAmount)} ADA</h3>
+        <h3 class="text-2xl font-bold text-main mb-2">
+          {loading ? '...' : `${nFormatter(stats.totalCardanoTarget)} ADA`}
+        </h3>
         <p class="text-gray-300">Total ADA Target</p>
       </div>
       <div class="stat-card p-[30px]">
@@ -87,36 +125,59 @@
     </div>
   </section>
 
-  <!-- Featured Campaigns -->
+
+  <!-- Updated Featured Campaigns Section -->
   <section class="pb-5">
     <h2 class="text-3xl font-bold text-white text-center mb-5">Featured campaigns</h2>
+    {#if loading}
+    <div class="text-center text-gray-300">Loading campaigns...</div>
+  {:else}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[30px]">
-      {#each [...FUNDING_CAMPAIGNS.ergo.slice(0, 2), ...FUNDING_CAMPAIGNS.cardano.slice(0, 1)] as campaign}
+      {#each campaigns.slice(0, 3) as campaign}
         <div class="campaign-card p-[30px] relative">
-            <h3 class="text-xl font-bold text-primary mb-4">{campaign.title}</h3>
-            <p class="text-gray-300 text-sm mb-6">{campaign.description}</p>
-            
-            <div class="space-y-4 mb-6">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                  <img src={campaign.assets.base.icon} alt={campaign.assets.base.name} class="w-6 h-6"/>
-                  <span class="text-white">{nFormatter(campaign.assets.base.targetAmount)} <span class="text-primary font-bold">{campaign.assets.base.name}</span></span>
-                </div>
-              </div>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                  <img src={campaign.assets.token.icon} alt={campaign.assets.token.name} class="w-6 h-6"/>
-                  <span class="text-white">{nFormatter(campaign.assets.token.targetAmount)} <span class="text-primary font-bold">{campaign.assets.token.name}</span></span>
-                </div>
+          <h3 class="text-xl font-bold text-primary mb-4">{campaign.title}</h3>
+          <p class="text-gray-300 text-sm mb-6">{campaign.description}</p>
+          
+          <div class="space-y-4 mb-6">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <img 
+                  src={campaign.base_name === 'ERG' 
+                    ? "https://spectrum.fi/logos/ergo/0000000000000000000000000000000000000000000000000000000000000000.svg"
+                    : campaign.base_icon_url || "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ada/asset1cvqgx3z9u8l54amkyk894tr23gyx63c6wpd7r2.svg"} 
+                  alt={campaign.base_name} 
+                  class="w-6 h-6"
+                  on:error={(e) => e.target.src = "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ada/asset1cvqgx3z9u8l54amkyk894tr23gyx63c6wpd7r2.svg"}
+                />
+                <span class="text-white">
+                  {nFormatter(campaign.base_target_amount)} 
+                  <span class="text-primary font-bold">{campaign.base_name}</span>
+                </span>
               </div>
             </div>
-
-            <a href="contribute" class="relative btn btn-secondary w-full block text-center px-4 py-2 rounded-lg transition-all hover:opacity-90" style="color: var(--background) !important;">
-              View Campaign
-            </a>
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <img 
+                  src={campaign.token_icon_url || "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg"} 
+                  alt={campaign.token_name}
+                  class="w-6 h-6"
+                  on:error={(e) => e.target.src = "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg"}
+                />
+                <span class="text-white">
+                  {nFormatter(campaign.token_target_amount)} 
+                  <span class="text-primary font-bold">{campaign.token_name}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+  
+          <a href="contribute" class="relative btn btn-secondary w-full block text-center px-4 py-2 rounded-lg transition-all hover:opacity-90" style="color: var(--background) !important;">
+            View Campaign
+          </a>
         </div>
       {/each}
     </div>
+  {/if}
     <div class="text-center mt-[60px]">
       <a href="contribute" class="btn-primary px-8 py-3 rounded-lg text-lg font-medium transition-all hover:opacity-90" style="color: var(--background) !important;">
         View All Campaigns
@@ -124,6 +185,7 @@
     </div>
   </section>
 </div>
+
 
 <style>
   .btn-primary {

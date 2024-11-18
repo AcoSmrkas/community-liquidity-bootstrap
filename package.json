@@ -63,6 +63,7 @@
 		"axios": "^1.7.2",
 		"bignumber.js": "^9.1.2",
 		"json-bigint": "1.0.0",
+		"lucide-svelte": "^0.460.1",
 		"vite-plugin-wasm": "^3.3.0"
 	}
 }

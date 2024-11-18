@@ -17,11 +17,12 @@
     let amount = '';
     let step = 'select';
 
-    $: feeAmount = amount ? new BigNumber(amount).multipliedBy(MEW_FEE_PERCENTAGE).dividedBy(100) : new BigNumber(0);
-    $: campaignAmount = amount ? new BigNumber(amount).minus(feeAmount) : new BigNumber(0);
+ // Update fee calculations
+ $: feeAmount = amount ? new BigNumber(amount).multipliedBy(MEW_FEE_PERCENTAGE).dividedBy(100) : new BigNumber(0);
+    $: totalAmount = amount ? new BigNumber(amount).plus(feeAmount) : new BigNumber(0);
     $: isValidAmount = amount && 
         new BigNumber(amount).gte(campaign.min_contribution) && 
-        new BigNumber(amount).lte(campaign.max_contribution);
+        new BigNumber(amount).lte(campaign.max_contribution);;
 
     function getCurrentBalance(isBaseToken) {
         return campaignBalances[campaign.id]?.[
@@ -30,12 +31,23 @@
     }
 
     function selectAsset(isBaseToken) {
-        selectedAsset = {
-            name: isBaseToken ? campaign.base_name : campaign.token_name,
-            tokenId: isBaseToken ? (campaign.base_name === 'ERG' ? null : campaign.base_token_id) : campaign.token_policy_id,
-            icon: isBaseToken ? campaign.base_icon_url : campaign.token_icon_url,
-            decimals: isBaseToken ? campaign.base_decimals : campaign.token_decimals
-        };
+        if (campaign.base_name === 'ERG') {
+            selectedAsset = {
+                name: 'ERG',
+                tokenId: null,
+                icon: "https://spectrum.fi/logos/ergo/0000000000000000000000000000000000000000000000000000000000000000.svg",
+                decimals: campaign.base_decimals
+            };
+        } else {
+            selectedAsset = {
+                name: isBaseToken ? campaign.base_name : campaign.token_name,
+                tokenId: isBaseToken ? campaign.base_token_id : campaign.token_policy_id,
+                icon: isBaseToken 
+                    ? (campaign.base_icon_url || "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ada/asset1cvqgx3z9u8l54amkyk894tr23gyx63c6wpd7r2.svg") 
+                    : (campaign.token_icon_url || "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg"),
+                decimals: isBaseToken ? campaign.base_decimals : campaign.token_decimals
+            };
+        }
         step = 'amount';
     }
 
@@ -48,7 +60,7 @@
         if (!isValidAmount || loading) return;
         
         dispatch('contribute', {
-            amount,
+            amount: totalAmount.toString(),
             selectedAsset
         });
     }
@@ -64,9 +76,20 @@
             onClose();
         }
     }
+
+    function handleImageError(e, isBaseToken) {
+        if (isBaseToken) {
+            e.target.src = campaign.base_name === 'ERG'
+                ? "https://spectrum.fi/logos/ergo/0000000000000000000000000000000000000000000000000000000000000000.svg"
+                : "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ada/asset1cvqgx3z9u8l54amkyk894tr23gyx63c6wpd7r2.svg";
+        } else {
+            e.target.src = "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg";
+        }
+    }
 </script>
 
 <svelte:window on:keydown={handleEscape}/>
+
 
 <div 
     class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50 modal-backdrop"
@@ -102,7 +125,14 @@
                     class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
                     on:click={() => selectAsset(true)}
                 >
-                    <img src={campaign.base_icon_url} alt={campaign.base_name} class="w-8 h-8"/>
+                    <img 
+                        src={campaign.base_name === 'ERG' 
+                            ? "https://spectrum.fi/logos/ergo/0000000000000000000000000000000000000000000000000000000000000000.svg"
+                            : campaign.base_icon_url || "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ada/asset1cvqgx3z9u8l54amkyk894tr23gyx63c6wpd7r2.svg"} 
+                        alt={campaign.base_name} 
+                        class="w-8 h-8"
+                        on:error={(e) => handleImageError(e, true)}
+                    />
                     <div class="text-left flex-1">
                         <div class="text-white font-medium">{campaign.base_name}</div>
                         <div class="text-gray-400 text-sm">
@@ -115,6 +145,32 @@
                         </svg>
                     </div>
                 </button>
+
+                <!-- Project Token Selection - Only show for LP creation campaigns -->
+                {#if campaign.mint_new_token === false}
+                    <button
+                        class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
+                        on:click={() => selectAsset(false)}
+                    >
+                        <img 
+                            src={campaign.token_icon_url || "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg"} 
+                            alt={campaign.token_name}
+                            class="w-8 h-8"
+                            on:error={(e) => handleImageError(e, false)}
+                        />
+                        <div class="text-left flex-1">
+                            <div class="text-white font-medium">{campaign.token_name}</div>
+                            <div class="text-gray-400 text-sm">
+                                Balance: {formatNumber(getCurrentBalance(false))}
+                            </div>
+                        </div>
+                        <div class="text-gray-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </div>
+                    </button>
+                {/if}
 
                 <!-- Campaign Info Summary -->
                 <div class="mt-6 space-y-3 bg-gray-800/30 rounded-lg p-4">
@@ -134,6 +190,12 @@
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-400">Vesting Period:</span>
                             <span class="text-white">{campaign.vesting_schedule}</span>
+                        </div>
+                    {/if}
+                    {#if campaign.liquidity_lock_period}
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">LP Lock Period:</span>
+                            <span class="text-white">{campaign.liquidity_lock_period}</span>
                         </div>
                     {/if}
                 </div>
@@ -156,7 +218,12 @@
                 <!-- Selected Asset Info -->
                 <div class="input-container p-4 rounded-lg">
                     <div class="flex items-center space-x-3 mb-4">
-                        <img src={selectedAsset.icon} alt={selectedAsset.name} class="w-8 h-8"/>
+                        <img 
+                            src={selectedAsset.icon} 
+                            alt={selectedAsset.name} 
+                            class="w-8 h-8"
+                            on:error={(e) => handleImageError(e, selectedAsset.name === campaign.base_name)}
+                        />
                         <div>
                             <h4 class="text-white font-medium">{selectedAsset.name}</h4>
                             <p class="text-gray-400 text-sm">
@@ -191,7 +258,7 @@
                             <!-- Contribution Breakdown -->
                             <div class="mt-4 space-y-2 bg-gray-800/30 p-4 rounded-lg">
                                 <div class="flex justify-between text-sm">
-                                    <span class="text-gray-400">You pay:</span>
+                                    <span class="text-gray-400">Campaign contribution:</span>
                                     <span class="text-white">{formatNumber(amount)} {selectedAsset.name}</span>
                                 </div>
                                 <div class="flex justify-between text-sm">
@@ -200,8 +267,8 @@
                                 </div>
                                 <div class="border-t border-gray-700 my-2"></div>
                                 <div class="flex justify-between text-sm font-medium">
-                                    <span class="text-gray-400">To campaign:</span>
-                                    <span class="text-white">{formatNumber(campaignAmount)} {selectedAsset.name}</span>
+                                    <span class="text-gray-400">Total amount to pay:</span>
+                                    <span class="text-white">{formatNumber(totalAmount)} {selectedAsset.name}</span>
                                 </div>
                             </div>
 
@@ -221,7 +288,7 @@
 
                 <!-- Submit Button -->
                 <button
-                    class="submit-button w-full px-4 py-3 rounded text-white disabled:opacity-50 transition-colors"
+                    class="submit-button w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     on:click={handleSubmit}
                     disabled={!isValidAmount || loading}
                 >
@@ -234,14 +301,14 @@
                             Processing...
                         </div>
                     {:else}
-                        Contribute {amount ? `${formatNumber(amount)} ${selectedAsset.name}` : ''}
+                        Pay {amount ? `${formatNumber(totalAmount)} ${selectedAsset.name}` : ''}
                     {/if}
                 </button>
 
                 <!-- Terms & Conditions -->
                 <div class="text-gray-400 text-xs text-center mt-4">
                     By contributing, you agree to the campaign's terms and conditions. 
-                    <br>A {MEW_FEE_PERCENTAGE}% platform fee will be deducted from your contribution.
+                    <br>A {MEW_FEE_PERCENTAGE}% platform fee will be added to your contribution amount.
                 </div>
             </div>
         {/if}
