@@ -20,17 +20,22 @@
     $: feeAmount = amount ? new BigNumber(amount).multipliedBy(MEW_FEE_PERCENTAGE).dividedBy(100) : new BigNumber(0);
     $: campaignAmount = amount ? new BigNumber(amount).minus(feeAmount) : new BigNumber(0);
     $: isValidAmount = amount && 
-        new BigNumber(amount).gte(campaign.tokenomics.minContribution) && 
-        new BigNumber(amount).lte(campaign.tokenomics.maxContribution);
+        new BigNumber(amount).gte(campaign.min_contribution) && 
+        new BigNumber(amount).lte(campaign.max_contribution);
 
-    function getCurrentBalance(asset) {
+    function getCurrentBalance(isBaseToken) {
         return campaignBalances[campaign.id]?.[
-            asset === campaign.assets.base ? 'baseToken' : 'projectToken'
+            isBaseToken ? 'baseToken' : 'projectToken'
         ]?.current || 0;
     }
 
-    function selectAsset(asset) {
-        selectedAsset = asset;
+    function selectAsset(isBaseToken) {
+        selectedAsset = {
+            name: isBaseToken ? campaign.base_name : campaign.token_name,
+            tokenId: isBaseToken ? (campaign.base_name === 'ERG' ? null : campaign.base_token_id) : campaign.token_policy_id,
+            icon: isBaseToken ? campaign.base_icon_url : campaign.token_icon_url,
+            decimals: isBaseToken ? campaign.base_decimals : campaign.token_decimals
+        };
         step = 'amount';
     }
 
@@ -72,7 +77,7 @@
         <div class="flex justify-between items-center mb-6">
             <div>
                 <h3 class="text-xl font-bold text-white">{campaign.title}</h3>
-                <p class="text-sm text-gray-400">Campaign ends: {new Date(campaign.endDate).toLocaleDateString()}</p>
+                <p class="text-sm text-gray-400">Campaign ends: {new Date(campaign.end_date).toLocaleDateString()}</p>
             </div>
             <button 
                 class="text-gray-400 hover:text-white transition-colors"
@@ -92,47 +97,24 @@
             <div class="space-y-4">
                 <h4 class="text-white font-medium mb-4">Select token to contribute:</h4>
                 
-                {#if campaign.mintNewToken}
-                    <!-- Single asset selection for minting campaigns -->
-                    <button
-                        class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
-                        on:click={() => selectAsset(campaign.assets.base)}
-                    >
-                        <img src={campaign.assets.base.icon} alt={campaign.assets.base.name} class="w-8 h-8"/>
-                        <div class="text-left flex-1">
-                            <div class="text-white font-medium">{campaign.assets.base.name}</div>
-                            <div class="text-gray-400 text-sm">
-                                Min: {campaign.tokenomics.minContribution} | Max: {campaign.tokenomics.maxContribution}
-                            </div>
+                <!-- Base Token Selection -->
+                <button
+                    class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
+                    on:click={() => selectAsset(true)}
+                >
+                    <img src={campaign.base_icon_url} alt={campaign.base_name} class="w-8 h-8"/>
+                    <div class="text-left flex-1">
+                        <div class="text-white font-medium">{campaign.base_name}</div>
+                        <div class="text-gray-400 text-sm">
+                            Min: {campaign.min_contribution} | Max: {campaign.max_contribution}
                         </div>
-                        <div class="text-gray-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                            </svg>
-                        </div>
-                    </button>
-                {:else}
-                    <!-- Dual asset selection for LP campaigns -->
-                    {#each [campaign.assets.base, campaign.assets.token] as asset}
-                        <button
-                            class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
-                            on:click={() => selectAsset(asset)}
-                        >
-                            <img src={asset.icon} alt={asset.name} class="w-8 h-8"/>
-                            <div class="text-left flex-1">
-                                <div class="text-white font-medium">{asset.name}</div>
-                                <div class="text-gray-400 text-sm">
-                                    Available: {formatNumber(getCurrentBalance(asset))}
-                                </div>
-                            </div>
-                            <div class="text-gray-400">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                </svg>
-                            </div>
-                        </button>
-                    {/each}
-                {/if}
+                    </div>
+                    <div class="text-gray-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                    </div>
+                </button>
 
                 <!-- Campaign Info Summary -->
                 <div class="mt-6 space-y-3 bg-gray-800/30 rounded-lg p-4">
@@ -142,16 +124,18 @@
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-400">Min Contribution:</span>
-                        <span class="text-white">{campaign.tokenomics.minContribution} {campaign.assets.base.name}</span>
+                        <span class="text-white">{campaign.min_contribution} {campaign.base_name}</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-400">Max Contribution:</span>
-                        <span class="text-white">{campaign.tokenomics.maxContribution} {campaign.assets.base.name}</span>
+                        <span class="text-white">{campaign.max_contribution} {campaign.base_name}</span>
                     </div>
-                    <div class="flex justify-between text-sm">
-                        <span class="text-gray-400">Vesting Period:</span>
-                        <span class="text-white">{campaign.tokenomics.vestingPeriod}</span>
-                    </div>
+                    {#if campaign.vesting_schedule}
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-400">Vesting Period:</span>
+                            <span class="text-white">{campaign.vesting_schedule}</span>
+                        </div>
+                    {/if}
                 </div>
             </div>
         {:else}
@@ -176,7 +160,7 @@
                         <div>
                             <h4 class="text-white font-medium">{selectedAsset.name}</h4>
                             <p class="text-gray-400 text-sm">
-                                Balance: {formatNumber(getCurrentBalance(selectedAsset))}
+                                Balance: {formatNumber(getCurrentBalance(selectedAsset.name === campaign.base_name))}
                             </p>
                         </div>
                     </div>
@@ -187,8 +171,8 @@
                             <input
                                 type="number"
                                 bind:value={amount}
-                                min={campaign.tokenomics.minContribution}
-                                max={campaign.tokenomics.maxContribution}
+                                min={campaign.min_contribution}
+                                max={campaign.max_contribution}
                                 step="any"
                                 class="amount-input w-full px-3 py-2 rounded text-white border focus:outline-none"
                                 placeholder={`Enter amount in ${selectedAsset.name}`}
@@ -196,7 +180,7 @@
                             />
                             <button 
                                 class="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-cyan-500 hover:text-cyan-400"
-                                on:click={() => amount = campaign.tokenomics.maxContribution}
+                                on:click={() => amount = campaign.max_contribution}
                                 disabled={loading}
                             >
                                 MAX
@@ -224,10 +208,10 @@
                             <!-- Validation Messages -->
                             {#if !isValidAmount}
                                 <div class="text-red-500 text-sm mt-2">
-                                    {#if new BigNumber(amount).lt(campaign.tokenomics.minContribution)}
-                                        Amount must be at least {campaign.tokenomics.minContribution} {selectedAsset.name}
-                                    {:else if new BigNumber(amount).gt(campaign.tokenomics.maxContribution)}
-                                        Amount cannot exceed {campaign.tokenomics.maxContribution} {selectedAsset.name}
+                                    {#if new BigNumber(amount).lt(campaign.min_contribution)}
+                                        Amount must be at least {campaign.min_contribution} {selectedAsset.name}
+                                    {:else if new BigNumber(amount).gt(campaign.max_contribution)}
+                                        Amount cannot exceed {campaign.max_contribution} {selectedAsset.name}
                                     {/if}
                                 </div>
                             {/if}

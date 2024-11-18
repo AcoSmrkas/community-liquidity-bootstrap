@@ -1,4 +1,5 @@
-<script lang="ts">
+<script>
+    import { onMount } from 'svelte';
     import { sendErgoTx } from "$lib/contract/sendErgoTx.ts";
     import { sendCardanoTx } from "$lib/contract/sendCardanoTx.ts";
     import ErgopayModal from '$lib/components/common/ErgopayModal.svelte';
@@ -8,154 +9,85 @@
     import { get } from "svelte/store";
     import { showCustomToast, isWalletConected, getCommonBoxIds, calculateTimeLeft, nFormatter } from '$lib/utils/utils.js';
     import { isWalletErgo, isWalletCardano } from '$lib/common/wallet.ts';
-    import { API_HOST, FUNDING_CAMPAIGNS, MEW_FEE_PERCENTAGE } from '$lib/common/const.js';
+    import { API_HOST, MEW_FEE_PERCENTAGE } from '$lib/common/const.js';
     import axios from "axios";
-    import { onMount } from 'svelte';
     import { BigNumber } from 'bignumber.js';
 
-    // Component state variables
+    // Component state
     let showErgopayModal = false;
     let showContributeModal = false;
     let selectedCampaign = null;
     let isAuth = false;
     let unsignedTx = null;
+    let activeTab = 'ergo';
+    let campaigns = [];
     let campaignBalances = {};
     let loading = false;
-    let activeTab = 'ergo';
-    let amount = '';
+    
+    // Campaign data management
+    async function fetchCampaigns() {
+        try {
+            const response = await axios.get(`${API_HOST}/mew/fund/getCampaigns`);
+            if (!response.data.items) return;
 
-    // Campaign status handler
+            campaigns = response.data.items.map(campaign => ({
+                ...campaign,
+                network: campaign.base_name === 'ERG' ? 'ergo' : 'cardano'
+            }));
+            await updateBalances();
+        } catch (error) {
+            showCustomToast('Failed to fetch campaigns', 5000, 'danger');
+        }
+    }
+
+    async function updateBalances() {
+        const newBalances = {};
+        for (const campaign of campaigns) {
+            try {
+                const response = await axios.get(`${API_HOST}/mew/fund/getCampaign?id=${campaign.id}`);
+                if (!response.data.items?.[0]) continue;
+
+                const data = response.data.items[0];
+                newBalances[campaign.id] = {
+                    baseToken: {
+                        current: data.base_current_amount || 0,
+                        percentage: Math.min(
+                            (data.base_current_amount / data.base_target_amount * 100) || 0,
+                            100
+                        )
+                    },
+                    projectToken: {
+                        current: data.token_current_amount || 0,
+                        percentage: Math.min(
+                            (data.token_current_amount / data.token_target_amount * 100) || 0,
+                            100
+                        )
+                    }
+                };
+            } catch (error) {
+                continue;
+            }
+        }
+        campaignBalances = newBalances;
+    }
+
     function getCampaignStatus(campaign) {
+        if (campaign.status_phase) return campaign.status_phase;
+
         const now = new Date().getTime();
-        const endDate = new Date(campaign.endDate).getTime();
+        const endDate = new Date(campaign.end_date).getTime();
         
         if (now > endDate) return 'ended';
         
         const baseBalance = campaignBalances[campaign.id]?.baseToken?.current || 0;
-        if (baseBalance >= campaign.assets.base.targetAmount) return 'ended';
+        const baseTarget = parseFloat(campaign.base_target_amount) || 0;
         
-        return campaign.status.phase;
+        if (baseBalance >= baseTarget) return 'ended';
+        
+        return 'active';
     }
 
-    // Balance fetching functions
-    async function fetchErgoBalance(address, campaign) {
-        try {
-            const response = await fetch(`https://api.ergoplatform.com/api/v1/addresses/${address}/balance/total`);
-            const data = await response.json();
-            
-            const balances = {
-                baseToken: {
-                    current: 0,
-                    percentage: 0
-                },
-                projectToken: {
-                    current: 0,
-                    percentage: 0
-                }
-            };
-
-            // Handle ERG balance
-            if (data.confirmed.nanoErgs) {
-                const ergAmount = new BigNumber(data.confirmed.nanoErgs)
-                    .dividedBy(Math.pow(10, campaign.assets.base.decimals))
-                    .toNumber();
-                balances.baseToken.current = ergAmount;
-                balances.baseToken.percentage = (ergAmount / campaign.assets.base.targetAmount) * 100;
-            }
-
-            // Handle project token balance
-            if (data.confirmed.tokens) {
-                const projectToken = data.confirmed.tokens.find(
-                    token => token.tokenId === campaign.assets.token.tokenId
-                );
-                if (projectToken) {
-                    const tokenAmount = new BigNumber(projectToken.amount)
-                        .dividedBy(Math.pow(10, campaign.assets.token.decimals))
-                        .toNumber();
-                    balances.projectToken.current = tokenAmount;
-                    balances.projectToken.percentage = (tokenAmount / campaign.assets.token.targetAmount) * 100;
-                }
-            }
-
-            return balances;
-        } catch (e) {
-            console.error('Error fetching Ergo balance:', e);
-            return null;
-        }
-    }
-
-    async function fetchCardanoBalance(address, campaign) {
-        try {
-            const response = await fetch(
-                `https://cardano-mainnet.blockfrost.io/api/v0/addresses/${address}`,
-                {
-                    headers: {
-                        'project_id': BLOCKFROST_PROJECT_ID
-                    }
-                }
-            );
-            const data = await response.json();
-            
-            const balances = {
-                baseToken: {
-                    current: 0,
-                    percentage: 0
-                },
-                projectToken: {
-                    current: 0,
-                    percentage: 0
-                }
-            };
-
-            // Handle ADA balance
-            if (data.amount) {
-                const lovelaceEntry = data.amount.find(entry => entry.unit === 'lovelace');
-                if (lovelaceEntry) {
-                    const adaAmount = new BigNumber(lovelaceEntry.quantity)
-                        .dividedBy(Math.pow(10, campaign.assets.base.decimals))
-                        .toNumber();
-                    balances.baseToken.current = adaAmount;
-                    balances.baseToken.percentage = (adaAmount / campaign.assets.base.targetAmount) * 100;
-                }
-            }
-
-            // Handle project token balance
-            if (data.amount) {
-                const projectTokenUnit = campaign.assets.token.policyId + 
-                    Buffer.from(campaign.assets.token.assetName).toString('hex');
-                const tokenEntry = data.amount.find(entry => entry.unit === projectTokenUnit);
-                if (tokenEntry) {
-                    const tokenAmount = new BigNumber(tokenEntry.quantity)
-                        .dividedBy(Math.pow(10, campaign.assets.token.decimals))
-                        .toNumber();
-                    balances.projectToken.current = tokenAmount;
-                    balances.projectToken.percentage = (tokenAmount / campaign.assets.token.targetAmount) * 100;
-                }
-            }
-
-            return balances;
-        } catch (e) {
-            console.error('Error fetching Cardano balance:', e);
-            return null;
-        }
-    }
-
-    // Balance update function
-    async function updateBalances() {
-        for (const network of Object.keys(FUNDING_CAMPAIGNS)) {
-            for (const campaign of FUNDING_CAMPAIGNS[network]) {
-                const balance = await (network === 'ergo' 
-                    ? fetchErgoBalance(campaign.recipientAddress, campaign)
-                    : fetchCardanoBalance(campaign.recipientAddress, campaign));
-                
-                if (balance) {
-                    campaignBalances[campaign.id] = balance;
-                }
-            }
-        }
-    }
-
-    // Transaction handling functions
+    // Transaction handling
     async function handleErgoContribution(amount, selectedAsset) {
         const selectedWalletErgo = get(selected_wallet);
 
@@ -172,6 +104,8 @@
                 height = await ergo.get_current_height();
             }
 
+            const tokenId = selectedAsset.name === 'ERG' ? null : selectedAsset.tokenId;
+
             const unsigned = await sendErgoTx(
                 myAddress,
                 utxos,
@@ -179,8 +113,8 @@
                 amount,
                 height,
                 selectedCampaign.id,
-                selectedAsset.tokenId,
-                selectedCampaign.recipientAddress,
+                tokenId,
+                selectedCampaign.recipient_address,
                 selectedAsset.decimals
             );
 
@@ -196,7 +130,7 @@
 
                 if (txId) {
                     const usedBoxIds = getCommonBoxIds(utxos, signed.inputs);
-                    const newOutputs = signed.outputs.filter(output => output.ergoTree == utxos[0].ergoTree);
+                    const newOutputs = signed.outputs.filter(output => output.ergoTree === utxos[0].ergoTree);
                     updateTempBoxes(myAddress, usedBoxIds, newOutputs);
                     return txId;
                 }
@@ -207,38 +141,30 @@
         }
     }
 
- async function handleCardanoContribution(amount, selectedAsset) {
-    const selectedWalletCardano = get(selected_wallet);
+    async function handleCardanoContribution(amount, selectedAsset) {
+        const selectedWalletCardano = get(selected_wallet);
 
-    try {
-        // Get the wallet API
-        const walletApi = await window.cardano[selectedWalletCardano].enable();
-        
-        if (!walletApi) {
-            throw new Error("Failed to enable wallet");
+        try {
+            const walletApi = await window.cardano[selectedWalletCardano].enable();
+            if (!walletApi) throw new Error("Failed to enable wallet");
+
+            return await sendCardanoTx(
+                walletApi,
+                selectedAsset.name,
+                amount,
+                selectedCampaign.id,
+                selectedAsset.tokenId,
+                selectedAsset.name,
+                selectedCampaign.recipient_address,
+                selectedAsset.decimals
+            );
+        } catch (e) {
+            handleTransactionError(e);
+            return null;
         }
-
-        const txHash = await sendCardanoTx(
-            walletApi,
-            selectedAsset.name,
-            amount,
-            selectedCampaign.id,
-            selectedAsset.policyId,
-            selectedAsset.assetName,
-            selectedCampaign.recipientAddress,
-            selectedAsset.decimals
-        );
-
-        return txHash;
-    } catch (e) {
-        handleTransactionError(e);
-        return null;
     }
-}
-
 
     function handleTransactionError(e) {
-        console.error(e);
         if (e.message?.includes('Insufficient')) {
             showCustomToast(`Insufficient funds.`, 5000, 'danger');
         } else if (e.info === 'User rejected' || (e.cause?.failure?.cause?.code === 2)) {
@@ -248,7 +174,6 @@
         }
     }
 
-    // Contribution handling
     async function handleContribution(event) {
         const { amount, selectedAsset } = event.detail;
         if (loading || !amount || !selectedAsset) return;
@@ -296,270 +221,162 @@
                     Platform Fee (${MEW_FEE_PERCENTAGE}%): ${feeAmount.toFixed(4)} ${selectedAsset.name}
                 `, 8000, 'info');
 
-                await logContribution(network, selectedAsset.name, amount, txId);
                 onContributeModalClose();
                 await updateBalances();
             }
         } catch (error) {
-            console.error('Contribution error:', error);
             showCustomToast('Failed to process contribution. Please try again.', 5000, 'danger');
         } finally {
             loading = false;
         }
     }
 
-    // Contribution logging
-    async function logContribution(network, asset, amount, txid) {
-        try {
-            await axios.post(`${API_HOST}/clb/logContribution`, {
-                network,
-                asset,
-                amount,
-                address: $connected_wallet_address,
-                txid,
-                campaignId: selectedCampaign.id
-            });
-        } catch (e) {
-            console.error('Error logging contribution:', e);
-        }
-    }
-
+    // UI helpers
     function onContributeModalClose() {
         showContributeModal = false;
         selectedCampaign = null;
     }
 
-    function handleTxSubmitted(event) {
-        const txId = event.detail;
-        if (txId && selectedCampaign) {
-            logContribution(activeTab, selectedCampaign.assets.base.name, amount, txId);
-        }
-    }
-
-    // Initialize component
+    // Lifecycle
     onMount(() => {
-        updateBalances();
-        const interval = setInterval(updateBalances, 300000); // Update every 5 minutes
+        fetchCampaigns();
+        const interval = setInterval(updateBalances, 300000);
         return () => clearInterval(interval);
     });
 </script>
+
 
 <div class="container top-margin text-white mb-5">
     <div class="container mx-auto px-0 max-w-6xl">
         <h1 class="text-4xl font-bold text-white text-center mb-8">Contribute</h1>
 
-    <!-- Network Tabs -->
-    <div class="flex justify-center space-x-4 mb-[50px]">
-        <button
-            class="px-8 py-2 rounded-lg font-medium transition-colors text-bg duration-200"
-            class:active-tab={activeTab === 'ergo'}
-            class:inactive-tab={activeTab !== 'ergo'}
-            on:click={() => activeTab = 'ergo'}
-        >
-            Ergo Campaigns
-        </button>
-        <button
-            class="px-8 py-2 rounded-lg font-medium text-bg duration-200"
-            class:active-tab={activeTab === 'cardano'}
-            class:inactive-tab={activeTab !== 'cardano'}
-            on:click={() => activeTab = 'cardano'}
-        >
-            Cardano Campaigns
-        </button>
-    </div>
+        <!-- Network Tabs -->
+        <div class="flex justify-center space-x-4 mb-[50px]">
+            <button
+                class="px-8 py-2 rounded-lg font-medium transition-colors text-bg duration-200"
+                class:active-tab={activeTab === 'ergo'}
+                class:inactive-tab={activeTab !== 'ergo'}
+                on:click={() => activeTab = 'ergo'}
+            >
+                Ergo Campaigns
+            </button>
+            <button
+                class="px-8 py-2 rounded-lg font-medium text-bg duration-200"
+                class:active-tab={activeTab === 'cardano'}
+                class:inactive-tab={activeTab !== 'cardano'}
+                on:click={() => activeTab = 'cardano'}
+            >
+                Cardano Campaigns
+            </button>
+        </div>
 
-    <!-- Campaign Type Sections -->
-    {#each ['Campaigns Minting New Tokens', 'Campaigns Creating LP with Provided Assets'] as sectionTitle, index}
-        <div class="mt-12">
-            <h2 class="text-2xl font-bold mb-4">{sectionTitle}</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                {#each FUNDING_CAMPAIGNS[activeTab].filter(c => c.mintNewToken === (index === 0)) as campaign (campaign.id)}
-                    <div 
-                        class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all"
-                        class:opacity-75={getCampaignStatus(campaign) === 'ended'}
-                    >
-                        <!-- Header -->
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="text-xl font-bold text-primary mb-2">{campaign.title}</h3>
-                                <p class="text-gray-400 text-sm min-h-[50px]">{campaign.description}</p>
-                            </div>
-                            <div class="mt-[3px] px-3 py-1 rounded-full text-xs capitalize" 
-                                 class:bg-green-500={campaign.status.phase === 'active'}
-                                 class:bg-yellow-500={campaign.status.phase === 'upcoming'}
-                                 class:bg-red-500={campaign.status.phase === 'ended'}>
-                                {campaign.status.phase}
+        <!-- Campaigns Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+            {#each campaigns.filter(c => c.network === activeTab) as campaign (campaign.id)}
+                <div 
+                    class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all overflow-hidden"
+                    class:opacity-75={getCampaignStatus(campaign) === 'ended'}
+                >
+                    <!-- Header -->
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-primary mb-2">{campaign.title}</h3>
+                            <p class="text-gray-400 text-sm">{campaign.description}</p>
+                        </div>
+                        <div class="mt-[3px] px-3 py-1 rounded-full text-xs capitalize" 
+                             class:bg-green-500={campaign.status_phase === 'active'}
+                             class:bg-yellow-500={campaign.status_phase === 'upcoming'}
+                             class:bg-red-500={campaign.status_phase === 'ended'}>
+                            {campaign.status_phase}
+                        </div>
+                    </div>
+
+                    <!-- Progress Section -->
+                    <div class="mb-6">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="text-gray-400 text-sm">Progress</div>
+                            <div class="text-white text-sm font-medium">
+                                {(campaignBalances[campaign.id]?.baseToken?.percentage || 0).toFixed(2)}%
                             </div>
                         </div>
-
-                        <!-- Token Info Grid -->
-                        {#if campaign.mintNewToken}
-                            <div class="grid grid-cols-2 gap-4 mb-6">
-                                {#if campaign.tokenomics.totalSupply}
-                                    <div class="bg-bg rounded-lg p-3">
-                                        <div class="text-primary text-sm mb-1">Total Supply</div>
-                                        <div class="text-white font-medium">
-                                            {campaign.tokenomics.totalSupply.toLocaleString()} {campaign.assets.token.name}
-                                        </div>
-                                    </div>
-                                {/if}
-                                {#if campaign.tokenomics.initialPrice}
-                                    <div class="bg-bg rounded-lg p-3">
-                                        <div class="text-primary text-sm mb-1">Initial Price</div>
-                                        <div class="text-white font-medium">
-                                            {campaign.tokenomics.initialPrice} {campaign.assets.base.name}
-                                        </div>
-                                    </div>
-                                {/if}
-                                {#if campaign.tokenomics.liquidityInfo}
-                                    <div class="bg-bg rounded-lg p-3 col-span-2">
-                                        <div class="text-primary text-sm mb-1">Liquidity Info</div>
-                                        <div class="text-white font-medium">
-                                            {campaign.tokenomics.liquidityInfo}
-                                        </div>
-                                    </div>
-                                {/if}
+                        <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                            <div 
+                                class="bg-cyan-500 rounded-full h-2 transition-all duration-500" 
+                                style="width: {campaignBalances[campaign.id]?.baseToken?.percentage || 0}%"
+                            />
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <div class="text-gray-400">
+                                Raised: {(campaignBalances[campaign.id]?.baseToken?.current || 0).toLocaleString()} {campaign.base_name}
                             </div>
-                        {:else}
-                            <!-- LP Campaign Info -->
-                            <div class="grid grid-cols-2 gap-4 mb-6">
-                                {#if campaign.tokenomics.estimatedApy}
-                                    <div class="bg-bg rounded-lg p-3">
-                                        <div class="text-primary text-sm mb-1">Estimated APY</div>
-                                        <div class="text-white font-medium">
-                                            {campaign.tokenomics.estimatedApy}%
-                                        </div>
-                                    </div>
-                                {/if}
-                                {#if campaign.tokenomics.farmingRewards}
-                                    <div class="bg-bg rounded-lg p-3">
-                                        <div class="text-primary text-sm mb-1">Rewards</div>
-                                        <div class="text-white font-medium">
-                                            {campaign.tokenomics.farmingRewards}
-                                        </div>
-                                    </div>
-                                {/if}
-                                {#if campaign.tokenomics.rewardsAllocation}
-                                    <div class="bg-bg rounded-lg p-3 col-span-2">
-                                        <div class="text-primary text-sm mb-1">Rewards Allocation</div>
-                                        <div class="text-white font-medium">
-                                            {campaign.tokenomics.rewardsAllocation}
-                                        </div>
-                                    </div>
-                                {/if}
-                            </div>
-                        {/if}
-
-                        <!-- Progress Section -->
-                        <div class="mb-6">
-                            <div class="flex justify-between items-center mb-2">
-                                <div class="text-gray-400 text-sm">Progress</div>
-                                <div class="text-white text-sm font-medium">
-                                    {(campaignBalances[campaign.id]?.baseToken?.percentage || 0).toFixed(2)}%
-                                </div>
-                            </div>
-                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
-                                <div 
-                                    class="bg-cyan-500 rounded-full h-2 transition-all duration-500" 
-                                    style="width: {campaignBalances[campaign.id]?.baseToken?.percentage || 0}%"
-                                />
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <div class="text-gray-400">
-                                    Raised: {(campaignBalances[campaign.id]?.baseToken?.current || 0).toLocaleString()} {campaign.assets.base.name}
-                                </div>
-                                <div class="text-gray-400">
-                                    Target: {campaign.assets.base.targetAmount.toLocaleString()} {campaign.assets.base.name}
-                                </div>
+                            <div class="text-gray-400">
+                                Target: {campaign.base_target_amount.toLocaleString()} {campaign.base_name}
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Contribution Limits -->
-                        {#if campaign.tokenomics.minContribution || campaign.tokenomics.maxContribution}
-                            <div class="flex justify-between mb-6 text-sm">
-                                {#if campaign.tokenomics.minContribution}
-                                    <div>
-                                        <div class="text-gray-400 mb-1">Min Contribution</div>
-                                        <div class="text-white">{nFormatter(campaign.tokenomics.minContribution)} {campaign.assets.base.name}</div>
-                                    </div>
-                                {/if}
-                                {#if campaign.tokenomics.maxContribution}
-                                    <div>
-                                        <div class="text-gray-400 mb-1">Max Contribution</div>
-                                        <div class="text-white">{nFormatter(campaign.tokenomics.maxContribution)} {campaign.assets.base.name}</div>
-                                    </div>
-                                {/if}
-                                <div>
-                                    <div class="text-gray-400 mb-1">Platform Fee</div>
-                                    <div class="text-white">{MEW_FEE_PERCENTAGE}%</div>
-                                </div>
-                            </div>
-                        {/if}
-
-                        <!-- Timeline -->
-                        <div class="mb-6">
-                            <div class="flex items-center justify-between text-sm">
-                                <div>
-                                    <div class="text-gray-400 mb-1">Time Left</div>
-                                    <div class="text-white">{calculateTimeLeft(campaign.endDate)}</div>
-                                </div>
-                                {#if campaign.tokenomics.vestingPeriod}
-                                    <div>
-                                        <div class="text-gray-400 mb-1">Vesting</div>
-                                        <div class="text-white">{campaign.tokenomics.vestingPeriod}</div>
-                                    </div>
-                                {/if}
-                                {#if campaign.tokenomics.liquidityLockPeriod}
-                                    <div>
-                                        <div class="text-gray-400 mb-1">LP Lock</div>
-                                        <div class="text-white">{campaign.tokenomics.liquidityLockPeriod}</div>
-                                    </div>
-                                {/if}
-                            </div>
+                    <!-- Contribution Limits -->
+                    <div class="flex justify-between mb-6 text-sm">
+                        <div>
+                            <div class="text-gray-400 mb-1">Min Contribution</div>
+                            <div class="text-white">{nFormatter(campaign.min_contribution)} {campaign.base_name}</div>
                         </div>
+                        <div>
+                            <div class="text-gray-400 mb-1">Max Contribution</div>
+                            <div class="text-white">{nFormatter(campaign.max_contribution)} {campaign.base_name}</div>
+                        </div>
+                        <div>
+                            <div class="text-gray-400 mb-1">Platform Fee</div>
+                            <div class="text-white">{MEW_FEE_PERCENTAGE}%</div>
+                        </div>
+                    </div>
 
-                        <!-- Social Links -->
-                        {#if Object.keys(campaign.links).length > 0}
-                            <div class="mt-3 flex space-x-4 mb-3 justify-evenly">
-                                {#each Object.entries(campaign.links) as [platform, url]}
+                    <!-- Timeline -->
+                    <div class="mb-6">
+                        <div class="text-gray-400 mb-1">Time Left</div>
+                        <div class="text-white">{calculateTimeLeft(campaign.end_date)}</div>
+                    </div>
+
+                    <!-- Social Links -->
+                    {#if campaign.website || campaign.telegram || campaign.twitter || campaign.discord}
+                        <div class="mt-3 flex space-x-4 mb-3 justify-evenly">
+                            {#each ['website', 'telegram', 'twitter', 'discord'] as platform}
+                                {#if campaign[platform]}
                                     <a 
-                                        href={url}
+                                        href={campaign[platform]}
                                         target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="text-gray-400 hover:text-cyan-500 transition-colors"
-                                    >
+                                        rel="noopener noreferrer"class="text-gray-400 hover:text-cyan-500 transition-colors">
                                         <span class="capitalize">{platform}</span>
                                     </a>
-                                {/each}
-                            </div>
-                        {/if}
+                                {/if}
+                            {/each}
+                        </div>
+                    {/if}
 
-                        <!-- Action Button -->
-                        <button
-                            class="w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg 
-                                   transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            on:click={() => {
-                                if (getCampaignStatus(campaign) === 'active') {
-                                    selectedCampaign = campaign;
-                                    showContributeModal = true;
-                                }
-                            }}
-                            disabled={getCampaignStatus(campaign) !== 'active'}
-                        >
-                            {#if getCampaignStatus(campaign) === 'active'}
-                                Contribute
-                            {:else if getCampaignStatus(campaign) === 'upcoming'}
-                                Coming Soon
-                            {:else}
-                                Campaign Ended
-                            {/if}
-                        </button>
-                    </div>
-                {/each}
-            </div>
+                    <!-- Action Button -->
+                    <button
+                        class="w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg 
+                               transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        on:click={() => {
+                            if (getCampaignStatus(campaign) === 'active') {
+                                selectedCampaign = campaign;
+                                showContributeModal = true;
+                            }
+                        }}
+                        disabled={getCampaignStatus(campaign) !== 'active'}
+                    >
+                        {#if getCampaignStatus(campaign) === 'active'}
+                            Contribute
+                        {:else if getCampaignStatus(campaign) === 'upcoming'}
+                            Coming Soon
+                        {:else}
+                            Campaign Ended
+                        {/if}
+                    </button>
+                </div>
+            {/each}
         </div>
-    {/each}
-</div>
+    </div>
 </div>
 
 <!-- Modals -->
