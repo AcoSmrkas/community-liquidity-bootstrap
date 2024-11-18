@@ -59,7 +59,7 @@
   transform: translateX(-50%);">
       <li class="text-lg {pageName == '' ? 'active' : ''}"><a href="./">Home</a></li>
       <li class="text-lg {pageName == 'contribute' ? 'active' : ''}"><a href="./contribute">Contribute</a></li>
-      <li class="text-lg {pageName == 'stats' ? 'active' : ''}"><a href="./stats">Stats</a></li>
+    
     </ul>
     <div class="flex items-center gap-4" style="margin-left: auto;flex: 0 1 auto; /* Allow items to have their natural widths */">
       <WalletButton />
