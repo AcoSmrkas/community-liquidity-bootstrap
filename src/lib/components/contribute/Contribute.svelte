@@ -45,24 +45,29 @@
         const newBalances = {};
         for (const campaign of campaigns) {
             try {
-                const response = await axios.get(`${API_HOST}/mew/fund/getCampaign?id=${campaign.id}`);
-                if (!response.data.items?.[0]) continue;
+                let balance = 0;
+                let percentage = 0;
 
-                const data = response.data.items[0];
+                if (campaign.base_name === 'ERG') {
+                    const response = await axios.get(`https://api.ergoplatform.com/api/v1/addresses/${campaign.recipient_address}/balance/total`);
+                    balance = response.data.confirmed.nanoErgs / Math.pow(10, 9);
+                    percentage = Math.min((balance / parseFloat(campaign.base_target_amount)) * 100, 100);
+                } else {
+                    // Fetch token balance for non-ERG campaigns
+                    const response = await axios.get(`https://api.ergoplatform.com/api/v1/addresses/${campaign.recipient_address}/balance/total`);
+                    const token = response.data.confirmed.tokens.find(t => t.tokenId === campaign.base_token_id);
+                    balance = token ? token.amount / Math.pow(10, token.decimals) : 0;
+                    percentage = Math.min((balance / parseFloat(campaign.base_target_amount)) * 100, 100);
+                }
+
                 newBalances[campaign.id] = {
                     baseToken: {
-                        current: data.base_current_amount || 0,
-                        percentage: Math.min(
-                            (data.base_current_amount / data.base_target_amount * 100) || 0,
-                            100
-                        )
+                        current: balance,
+                        percentage
                     },
                     projectToken: {
-                        current: data.token_current_amount || 0,
-                        percentage: Math.min(
-                            (data.token_current_amount / data.token_target_amount * 100) || 0,
-                            100
-                        )
+                        current: 0,
+                        percentage: 0
                     }
                 };
             } catch (error) {
