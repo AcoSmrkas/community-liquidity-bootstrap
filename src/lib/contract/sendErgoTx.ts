@@ -28,11 +28,9 @@ export async function sendErgoTx(
     if (assetName === "ERG") {
         // Calculate total amount in nanoERG
         totalErgValue = new BigNumber(amount).times(10 ** 9);
-        console.log(amount);
-        console.log(totalErgValue);
         
         // Calculate fee amount (1%)
-        feeValue = new BigNumber(totalErgValue).dividedBy(100).multipliedBy(MEW_FEE_PERCENTAGE);
+        feeValue = Math.ceil(new BigNumber(totalErgValue).dividedBy(100).multipliedBy(MEW_FEE_PERCENTAGE));
     }
 
     // Create campaign output box
@@ -51,12 +49,17 @@ export async function sendErgoTx(
     
     if (tokenId) {
         // Handle token distribution
-        const tokenAmount = new BigNumber(amount).times(10 ** decimals).integerValue();
-        console.log(`Converting ${amount} ${assetName} to ${tokenAmount} base units`);
+        const tokenAmount = new BigNumber(amount).times(10 ** decimals);
         
         campaignBox.addTokens(new TokensCollection([{
             tokenId: tokenId,
             amount: tokenAmount
+        }]));
+
+        const tokenFeeAmount = Math.ceil(new BigNumber(tokenAmount).dividedBy(100).multipliedBy(MEW_FEE_PERCENTAGE));
+        feeBox.addTokens(new TokensCollection([{
+            tokenId: tokenId,
+            amount: tokenFeeAmount
         }]));
     }
   

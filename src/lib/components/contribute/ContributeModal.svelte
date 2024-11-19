@@ -19,7 +19,7 @@
     let step = 'select';
 
     // Update fee calculations
-    $: feeAmount = amount ? new BigNumber(amount).multipliedBy(MEW_FEE_PERCENTAGE).dividedBy(100) : new BigNumber(0);
+    $: feeAmount = amount ? new BigNumber(amount).dividedBy(100).multipliedBy(MEW_FEE_PERCENTAGE) : new BigNumber(0);
     $: totalAmount = amount ? new BigNumber(amount).plus(feeAmount) : new BigNumber(0);
     $: isValidAmount = amount && 
         new BigNumber(amount).gte(campaign.min_contribution) && 
@@ -64,12 +64,6 @@
             amount: amount,
             selectedAsset
         });
-    }
-
-    function formatNumber(num, decimals = 4) {
-        if (!num) return '0';
-        const bn = new BigNumber(num);
-        return bn.isInteger() ? bn.toFormat(0) : bn.toFormat(decimals);
     }
 
     function handleEscape(event) {
@@ -247,7 +241,7 @@
                                 disabled={loading}
                             />
                             <button 
-                                class="absolute right-2 top-1/2 -translate-y-1/2 pe-2 text-sm text-info hover:text-cyan-400"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 pe-2 text-sm text-cyan-500 hover:text-cyan-400"
                                 on:click={() => amount = campaign.max_contribution}
                                 disabled={loading}
                             >
@@ -269,13 +263,13 @@
                                 <div class="border-t border-gray-700 my-2"></div>
                                 <div class="flex justify-between text-sm font-medium">
                                     <span class="text-gray-400">Total amount to pay:</span>
-                                    <span class="text-white">{nFormatter(totalAmount)} <span class="font-bold text-primary">{selectedAsset.name}</span></span>
+                                    <span class="text-white">{totalAmount.toString()} <span class="font-bold text-primary">{selectedAsset.name}</span></span>
                                 </div>
                             </div>
 
                             <!-- Validation Messages -->
                             {#if !isValidAmount}
-                                <div class="text-red-500 text-sm mt-2">
+                                <div class="text-red-500 text-sm mt-2 px-1">
                                     {#if new BigNumber(amount).lt(campaign.min_contribution)}
                                         Amount must be at least {campaign.min_contribution} {selectedAsset.name}
                                     {:else if new BigNumber(amount).gt(campaign.max_contribution)}
@@ -302,7 +296,7 @@
                             Processing...
                         </div>
                     {:else}
-                        Pay {amount ? `${nFormatter(totalAmount)} ${selectedAsset.name}` : ''}
+                        Contribute {amount ? `${totalAmount.toString()} ${selectedAsset.name}` : ''}
                     {/if}
                 </button>
 
@@ -327,6 +321,7 @@
 
     .modal-content {
         background-color: var(--forms-bg);
+        border: 2px solid var(--info-color) !important;
     }
 
     .selection-button {
@@ -343,6 +338,7 @@
 
     .input-container {
         background-color: var(--background);
+        transition: all 0.2s ease-in-out;
     }
 
     .amount-input {

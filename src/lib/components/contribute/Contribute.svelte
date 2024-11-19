@@ -8,7 +8,7 @@
     import { selected_wallet, connected_wallet_address } from "$lib/store/store.ts";
     import { fetchBoxes, getBlockHeight, updateTempBoxes } from '$lib/api-explorer/explorer.ts';  
     import { get } from "svelte/store";
-    import { showCustomToast, isWalletConected, getCommonBoxIds, calculateTimeLeft, nFormatter } from '$lib/utils/utils.js';
+    import { showCustomToast, isWalletConected, getCommonBoxIds, nFormatter } from '$lib/utils/utils.js';
     import { isWalletErgo, isWalletCardano } from '$lib/common/wallet.ts';
     import { API_HOST, MEW_FEE_PERCENTAGE } from '$lib/common/const.js';
     import axios from "axios";
