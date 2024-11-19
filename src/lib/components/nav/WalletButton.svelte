@@ -179,7 +179,7 @@
   <WalletsModal bind:showWalletsModal>
     <div class="w-52 h-52">
       <div class="leading-6 pb-2 text-white w-100 text-center font-bold" style="font-family:'Manrope';font-size:1.5em;">Select Wallet</div>
-      <div class="flex mb-6 mt-3">
+      <div class="flex mb-6 mt-3 hidden">
           <button style="border-radius: 0.5rem 0rem 0rem 0.5rem;"
               class="flex-1 px-6 py-2 font-medium transition-colors duration-200 {activeModalTab === 'ergo' ? 'bg-footer text-primary' : 'bg-bg   contribute-tab text-gray-300'}"
               on:click={() => activeModalTab = 'ergo'}

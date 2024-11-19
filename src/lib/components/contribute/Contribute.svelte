@@ -252,9 +252,9 @@
             
             showCustomToast(`
                 Contribution breakdown:<br>
-                Total Amount: ${totalAmount.toFixed(4)} ${selectedAsset.name}<br>
-                To Campaign: ${campaignAmount.toFixed(4)} ${selectedAsset.name} (100%)<br>
-                Platform Fee: ${feeAmount.toFixed(4)} ${selectedAsset.name} (${MEW_FEE_PERCENTAGE}%)
+                Total Amount: ${nFormatter(totalAmount)} ${selectedAsset.name}<br>
+                To Campaign: ${nFormatter(campaignAmount)} ${selectedAsset.name} (100%)<br>
+                Platform Fee: ${nFormatter(feeAmount)} ${selectedAsset.name} (${MEW_FEE_PERCENTAGE}%)
             `, 8000, 'info');
 
             onContributeModalClose();
@@ -287,8 +287,8 @@ function handleTxSubmitted(event) {
             
             showCustomToast(`
                 Contribution breakdown:<br>
-                To Campaign: ${campaignAmount.toFixed(4)} ${selectedCampaign.base_name}<br>
-                Platform Fee (${MEW_FEE_PERCENTAGE}%): ${feeAmount.toFixed(4)} ${selectedCampaign.base_name}
+                To Campaign: ${nFormatter(campaignAmount)} ${selectedCampaign.base_name}<br>
+                Platform Fee (${MEW_FEE_PERCENTAGE}%): ${nFormatter(feeAmount)} ${selectedCampaign.base_name}
             `, 8000, 'info');
             
             updateBalances();
@@ -329,7 +329,7 @@ function handleTxSubmitted(event) {
         </div>
 
         <!-- Campaigns -->
-        <div class="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+        <div class="mt-12 grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
             {#each campaigns.filter(c => c.network === activeTab) as campaign (campaign.id)}
                 <div 
                     class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all overflow-hidden"
@@ -516,6 +516,9 @@ function handleTxSubmitted(event) {
 <style>
     .campaign-card {
         background-color: var(--forms-bg);
+        display: flex;
+        flex-direction: column;
+        place-content: space-between;
     }
 
     .active-tab {

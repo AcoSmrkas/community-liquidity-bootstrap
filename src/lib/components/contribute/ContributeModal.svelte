@@ -2,6 +2,7 @@
     import { createEventDispatcher } from 'svelte';
     import { MEW_FEE_PERCENTAGE } from '$lib/common/const.js';
     import { BigNumber } from 'bignumber.js';
+    import { nFormatter } from '$lib/utils/utils.js';
 
     export let campaign;
     export let onClose;
@@ -17,8 +18,8 @@
     let amount = '';
     let step = 'select';
 
- // Update fee calculations
- $: feeAmount = amount ? new BigNumber(amount).multipliedBy(MEW_FEE_PERCENTAGE).dividedBy(100) : new BigNumber(0);
+    // Update fee calculations
+    $: feeAmount = amount ? new BigNumber(amount).multipliedBy(MEW_FEE_PERCENTAGE).dividedBy(100) : new BigNumber(0);
     $: totalAmount = amount ? new BigNumber(amount).plus(feeAmount) : new BigNumber(0);
     $: isValidAmount = amount && 
         new BigNumber(amount).gte(campaign.min_contribution) && 
@@ -60,7 +61,7 @@
         if (!isValidAmount || loading) return;
         
         dispatch('contribute', {
-            amount: totalAmount.toString(),
+            amount: amount,
             selectedAsset
         });
     }
@@ -99,11 +100,11 @@
         <!-- Header -->
         <div class="flex justify-between items-center mb-6">
             <div>
-                <h3 class="text-xl font-bold text-white">{campaign.title}</h3>
+                <h3 class="text-xl font-bold text-primary">{campaign.title}</h3>
                 <p class="text-sm text-gray-400">Campaign ends: {new Date(campaign.end_date).toLocaleDateString()}</p>
             </div>
             <button 
-                class="text-gray-400 hover:text-white transition-colors"
+                class="text-gray-400 hover:text-yellow-400 transition-colors"
                 on:click={onClose}
                 disabled={loading}
             >
@@ -118,7 +119,7 @@
         {#if step === 'select'}
             <!-- Asset Selection Step -->
             <div class="space-y-4">
-                <h4 class="text-white font-medium mb-4">Select token to contribute:</h4>
+                <h4 class="text-primary font-medium mb-2">Select token to contribute:</h4>
                 
                 <!-- Base Token Selection -->
                 <button
@@ -134,7 +135,7 @@
                         on:error={(e) => handleImageError(e, true)}
                     />
                     <div class="text-left flex-1">
-                        <div class="text-white font-medium">{campaign.base_name}</div>
+                        <div class="text-primary font-bold font-medium">{campaign.base_name}</div>
                         <div class="text-gray-400 text-sm">
                             Min: {campaign.min_contribution} | Max: {campaign.max_contribution}
                         </div>
@@ -159,9 +160,9 @@
                             on:error={(e) => handleImageError(e, false)}
                         />
                         <div class="text-left flex-1">
-                            <div class="text-white font-medium">{campaign.token_name}</div>
+                            <div class="text-primary font-bold font-medium">{campaign.token_name}</div>
                             <div class="text-gray-400 text-sm">
-                                Balance: {formatNumber(getCurrentBalance(false))}
+                                Balance: {nFormatter(getCurrentBalance(false))}
                             </div>
                         </div>
                         <div class="text-gray-400">
@@ -173,18 +174,18 @@
                 {/if}
 
                 <!-- Campaign Info Summary -->
-                <div class="mt-6 space-y-3 bg-gray-800/30 rounded-lg p-4">
+                <div class="mt-6 space-y-3 bg-bg rounded-lg p-4">
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-400">Platform Fee:</span>
                         <span class="text-white">{MEW_FEE_PERCENTAGE}%</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-400">Min Contribution:</span>
-                        <span class="text-white">{campaign.min_contribution} {campaign.base_name}</span>
+                        <span class="text-white">{campaign.min_contribution} <span class="font-bold text-primary">{campaign.base_name}</span></span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span class="text-gray-400">Max Contribution:</span>
-                        <span class="text-white">{campaign.max_contribution} {campaign.base_name}</span>
+                        <span class="text-white">{campaign.max_contribution} <span class="font-bold text-primary">{campaign.base_name}</span></span>
                     </div>
                     {#if campaign.vesting_schedule}
                         <div class="flex justify-between text-sm">
@@ -216,7 +217,7 @@
                 </button>
 
                 <!-- Selected Asset Info -->
-                <div class="input-container p-4 rounded-lg">
+                <div class="input-container bg-bg p-3 rounded-lg">
                     <div class="flex items-center space-x-3 mb-4">
                         <img 
                             src={selectedAsset.icon} 
@@ -225,9 +226,9 @@
                             on:error={(e) => handleImageError(e, selectedAsset.name === campaign.base_name)}
                         />
                         <div>
-                            <h4 class="text-white font-medium">{selectedAsset.name}</h4>
+                            <h4 class="text-primary font-bold font-medium">{selectedAsset.name}</h4>
                             <p class="text-gray-400 text-sm">
-                                Balance: {formatNumber(getCurrentBalance(selectedAsset.name === campaign.base_name))}
+                                Balance: {nFormatter(getCurrentBalance(selectedAsset.name === campaign.base_name))}
                             </p>
                         </div>
                     </div>
@@ -246,7 +247,7 @@
                                 disabled={loading}
                             />
                             <button 
-                                class="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-cyan-500 hover:text-cyan-400"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 pe-2 text-sm text-info hover:text-cyan-400"
                                 on:click={() => amount = campaign.max_contribution}
                                 disabled={loading}
                             >
@@ -256,19 +257,19 @@
 
                         {#if amount && !isNaN(amount) && Number(amount) > 0}
                             <!-- Contribution Breakdown -->
-                            <div class="mt-4 space-y-2 bg-gray-800/30 p-4 rounded-lg">
+                            <div class="mt-0 space-y-2 bg-bg pt-4 pb-1 px-1 rounded-lg">
                                 <div class="flex justify-between text-sm">
                                     <span class="text-gray-400">Campaign contribution:</span>
-                                    <span class="text-white">{formatNumber(amount)} {selectedAsset.name}</span>
+                                    <span class="text-white">{nFormatter(amount)} <span class="font-bold text-primary">{selectedAsset.name}</span></span>
                                 </div>
                                 <div class="flex justify-between text-sm">
                                     <span class="text-gray-400">Platform fee ({MEW_FEE_PERCENTAGE}%):</span>
-                                    <span class="text-white">{formatNumber(feeAmount)} {selectedAsset.name}</span>
+                                    <span class="text-white">{nFormatter(feeAmount)} <span class="font-bold text-primary">{selectedAsset.name}</span></span>
                                 </div>
                                 <div class="border-t border-gray-700 my-2"></div>
                                 <div class="flex justify-between text-sm font-medium">
                                     <span class="text-gray-400">Total amount to pay:</span>
-                                    <span class="text-white">{formatNumber(totalAmount)} {selectedAsset.name}</span>
+                                    <span class="text-white">{nFormatter(totalAmount)} <span class="font-bold text-primary">{selectedAsset.name}</span></span>
                                 </div>
                             </div>
 
@@ -301,12 +302,12 @@
                             Processing...
                         </div>
                     {:else}
-                        Pay {amount ? `${formatNumber(totalAmount)} ${selectedAsset.name}` : ''}
+                        Pay {amount ? `${nFormatter(totalAmount)} ${selectedAsset.name}` : ''}
                     {/if}
                 </button>
 
                 <!-- Terms & Conditions -->
-                <div class="text-gray-400 text-xs text-center mt-4">
+                <div class="text-gray-400 text-xs text-center mt-3">
                     By contributing, you agree to the campaign's terms and conditions. 
                     <br>A {MEW_FEE_PERCENTAGE}% platform fee will be added to your contribution amount.
                 </div>
@@ -316,6 +317,10 @@
 </div>
 
 <style>
+    input:focus {
+        border: 1px solid var(--main-color) !important;
+    }
+
     .modal-backdrop {
         backdrop-filter: blur(2px);
     }
@@ -325,18 +330,19 @@
     }
 
     .selection-button {
-        background-color: var(--forms-bg);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: var(--background);
     }
 
     .selection-button:hover {
         background-color: var(--main-color);
-        opacity: 0.9;
+    }
+
+    .selection-button:hover > * > * {
+        color: var(--background) !important;
     }
 
     .input-container {
-        background-color: var(--forms-bg);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: var(--background);
     }
 
     .amount-input {
@@ -350,10 +356,6 @@
 
     .submit-button {
         background-color: var(--main-color);
-    }
-
-    .submit-button:hover:not(:disabled) {
-        opacity: 0.9;
     }
 
     input[type="number"]::-webkit-inner-spin-button,
