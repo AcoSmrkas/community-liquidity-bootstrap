@@ -250,12 +250,14 @@
                 'success'
             );
             
+            /*
             showCustomToast(`
                 Contribution breakdown:<br>
                 Total Amount: ${nFormatter(totalAmount)} ${selectedAsset.name}<br>
-                To Campaign: ${nFormatter(campaignAmount)} ${selectedAsset.name} (100%)<br>
+                To Campaign: ${nFormatter(amount)} ${selectedAsset.name} (100%)<br>
                 Platform Fee: ${nFormatter(feeAmount)} ${selectedAsset.name} (${MEW_FEE_PERCENTAGE}%)
             `, 8000, 'info');
+            */
 
             onContributeModalClose();
             await updateBalances();
