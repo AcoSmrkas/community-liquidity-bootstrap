@@ -319,6 +319,15 @@ function handleTxSubmitted(event) {
         const contribution = campaign.contributions?.find(c => c.asset === tokenId);
         return contribution ? contribution.amount : 0;
     }
+        // Add this to your existing script
+        let selectedStatus = 'active'; // Default filter
+    
+    function getFilteredCampaigns(campaigns) {
+        return campaigns.filter(c => 
+            c.network === activeTab && 
+            c.status_phase === selectedStatus
+        );
+    }
 </script>
 <CreateCampaignModal bind:showModal={showCreateModal} />
 <div class="container top-margin text-white mb-5">
@@ -357,10 +366,36 @@ function handleTxSubmitted(event) {
                 Cardano Campaigns
             </button>
         </div>
-    
+    <!-- Add this after Network Tabs -->
+<div class="flex justify-center space-x-4 mb-8">
+    <button
+        class="px-4 py-2 rounded-lg font-medium transition-colors"
+        class:active-status={selectedStatus === 'active'}
+        class:inactive-status={selectedStatus !== 'active'}
+        on:click={() => selectedStatus = 'active'}
+    >
+        Active
+    </button>
+    <button
+        class="px-4 py-2 rounded-lg font-medium transition-colors"
+        class:active-status={selectedStatus === 'upcoming'}
+        class:inactive-status={selectedStatus !== 'upcoming'}
+        on:click={() => selectedStatus = 'upcoming'}
+    >
+        Upcoming
+    </button>
+    <button
+        class="px-4 py-2 rounded-lg font-medium transition-colors"
+        class:active-status={selectedStatus === 'ended'}
+        class:inactive-status={selectedStatus !== 'ended'}
+        on:click={() => selectedStatus = 'ended'}
+    >
+        Ended
+    </button>
+</div>
 <!-- Main Grid -->
 <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
-    {#each campaigns.filter(c => c.network === activeTab) as campaign (campaign.id)}
+    {#each getFilteredCampaigns(campaigns) as campaign (campaign.id)}
         {#if campaign.status_phase === 'ended'}
             <!-- Ended Campaign Card -->
             <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
@@ -956,7 +991,20 @@ function handleTxSubmitted(event) {
     :global(.campaign-card) {
         background-color: var(--forms-bg);
     }
+    .active-status {
+        background-color: var(--main-color);
+        color: white;
+    }
 
+    .inactive-status {
+        background-color: var(--forms-bg);
+        color: rgb(209 213 219);
+    }
+
+    .inactive-status:hover {
+        background-color: var(--main-color);
+        color: var(--background);
+    }
     .success-campaign-box {
         background-color: #211b2b;
         border: 1px solid rgb(6 182 212 / 0.2);
