@@ -42,7 +42,6 @@ async function fetchCampaigns() {
         showCustomToast('Failed to fetch campaigns', 5000, 'danger');
     }
 }
-
 async function updateBalances() {
     const newBalances = {};
     for (const campaign of campaigns) {
@@ -51,11 +50,11 @@ async function updateBalances() {
             let projectPercentage = 0;
 
             // Calculate base token percentage using total_contributed
-            basePercentage = Math.min((campaign.total_contributed / parseFloat(campaign.target_raise || 0)) * 100, 100);
+            basePercentage = Math.min((campaign.total_contributed / parseFloat(campaign.base_target_amount || 0)) * 100, 100);
 
             // For LP creation campaigns with secondary token
             if (!campaign.mint_new_token && campaign.token_target_amount > 0) {
-                projectPercentage = Math.min((campaign.total_contributed / parseFloat(campaign.target_raise || 0)) * 100, 100);
+                projectPercentage = Math.min((campaign.total_contributed / parseFloat(campaign.base_target_amount || 0)) * 100, 100);
             }
 
             newBalances[campaign.id] = {
@@ -85,7 +84,7 @@ function getCampaignStatus(campaign) {
     if (now > endDate) return 'ended';
     
     const baseBalance = campaignBalances[campaign.id]?.baseToken?.current || 0;
-    const baseTarget = parseFloat(campaign.target_raise) || 0;
+    const baseTarget = parseFloat(campaign.base_target_amount) || 0;
     
     if (baseBalance >= baseTarget) return 'ended';
     
@@ -306,6 +305,20 @@ function handleTxSubmitted(event) {
  function handleClick() {
         showCustomToast('Campaign creation coming soon! Stay tuned for updates.', 3000, 'info');
     }
+    function formatAddress(address, length = 8) {
+        if (!address) return '';
+        return `${address.slice(0, length)}...${address.slice(-length)}`;
+    }
+
+    function calculateProgress(contribution, targetAmount) {
+        if (!targetAmount || !contribution) return 0;
+        return Math.min((contribution / parseFloat(targetAmount)) * 100, 100);
+    }
+
+    function getContributionAmount(campaign, tokenId) {
+        const contribution = campaign.contributions?.find(c => c.asset === tokenId);
+        return contribution ? contribution.amount : 0;
+    }
 </script>
 <CreateCampaignModal bind:showModal={showCreateModal} />
 <div class="container top-margin text-white mb-5">
@@ -345,7 +358,7 @@ function handleTxSubmitted(event) {
             </button>
         </div>
     
-    <!-- Campaigns Grid -->
+<!-- Main Grid -->
 <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
     {#each campaigns.filter(c => c.network === activeTab) as campaign (campaign.id)}
         {#if campaign.status_phase === 'ended'}
@@ -367,10 +380,13 @@ function handleTxSubmitted(event) {
                     <h3 class="text-xl font-semibold text-cyan-500 mb-4">Campaign Results</h3>
                     
                     <div class="space-y-4">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-400">Total Raised:</span>
-                            <span class="text-white font-medium">{campaign.total_contributed} {campaign.base_name}</span>
-                        </div>
+                        {#each campaign.contributions || [] as contribution}
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-400">Total Raised:</span>
+                                <span class="text-white font-medium">{contribution.amount} 
+                                    {contribution.asset === campaign.base_token_id ? campaign.base_name : 'Token'}</span>
+                            </div>
+                        {/each}
 
                         {#if campaign.lp_tokenid}
                             <div>
@@ -382,7 +398,8 @@ function handleTxSubmitted(event) {
                                     >
                                         <span class="truncate max-w-[150px]">{campaign.lp_tokenid}</span>
                                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                         </svg>
                                     </button>
                                 </div>
@@ -410,10 +427,9 @@ function handleTxSubmitted(event) {
                 </button>
             </div>
 
-        {:else if campaign.mint_new_token && campaign.campaign_type === 'mintpluslp'}
-            <!-- Token Minting Campaign Card -->
+        {:else if campaign.campaign_type === 'mintpluslp'}
+            <!-- Mint + LP Campaign Card -->
             <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
-                <!-- Header -->
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <div class="flex items-center gap-3 mb-2">
@@ -435,21 +451,27 @@ function handleTxSubmitted(event) {
                     <div class="flex justify-between items-center mb-2">
                         <div class="text-gray-400 text-sm">Progress</div>
                         <div class="text-white text-sm font-medium">
-                            {(campaignBalances[campaign.id]?.baseToken?.percentage || 0).toFixed(2)}%
+                            {calculateProgress(
+                                getContributionAmount(campaign, campaign.base_token_id),
+                                campaign.base_target_amount
+                            ).toFixed(2)}%
                         </div>
                     </div>
                     <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
                         <div 
                             class="bg-cyan-500 rounded-full h-2 transition-all duration-500" 
-                            style="width: {campaignBalances[campaign.id]?.baseToken?.percentage || 0}%"
+                            style="width: {calculateProgress(
+                                getContributionAmount(campaign, campaign.base_token_id),
+                                campaign.base_target_amount
+                            )}%"
                         />
                     </div>
                     <div class="flex justify-between text-sm">
                         <div class="text-gray-400">
-                            Raised: {(campaignBalances[campaign.id]?.baseToken?.current || 0).toLocaleString()} {campaign.base_name}
+                            Raised: {getContributionAmount(campaign, campaign.base_token_id)} {campaign.base_name}
                         </div>
                         <div class="text-gray-400">
-                            Target: {campaign.target_raise.toLocaleString()} {campaign.base_name}
+                            Target: {campaign.base_target_amount.toLocaleString()} {campaign.base_name}
                         </div>
                     </div>
                 </div>
@@ -482,17 +504,8 @@ function handleTxSubmitted(event) {
                         <div class="text-gray-400 text-sm mb-1">LP Fee</div>
                         <div class="text-white font-medium">{campaign.lp_fee}%</div>
                     </div>
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">Platform Fee</div>
-                        <div class="text-white font-medium">{MEW_FEE_PERCENTAGE}%</div>
-                    </div>
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">Mew LP Fee</div>
-                        <div class="text-white font-medium">3%</div>
-                    </div>
                 </div>
-
-                <!-- Social Links -->
+                <!-- Social Links for mintpluslp -->
                 {#if campaign.website || campaign.telegram || campaign.twitter || campaign.discord}
                     <div class="flex justify-center space-x-6 mb-6">
                         {#if campaign.website}
@@ -522,6 +535,188 @@ function handleTxSubmitted(event) {
                     </div>
                 {/if}
 
+                <!-- Action Button for mintpluslp -->
+                <button
+                    class="w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg 
+                           transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    on:click={() => {
+                        if (campaign.status_phase === 'active') {
+                            selectedCampaign = campaign;
+                            showContributeModal = true;
+                        }
+                    }}
+                    disabled={campaign.status_phase !== 'active'}
+                >
+                    {#if campaign.status_phase === 'active'}
+                        Contribute
+                    {:else}
+                        Coming Soon
+                    {/if}
+                </button>
+            </div>
+
+        {:else if campaign.campaign_type === 'multiassetlp'}
+            <!-- Multi-Asset LP Campaign Card -->
+            <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
+                <!-- Header -->
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <h2 class="text-2xl font-bold text-white">{campaign.title}</h2>
+                            <span class="px-3 py-1 rounded-lg text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/20">
+                                Multi-Asset LP
+                            </span>
+                        </div>
+                        <p class="text-gray-400 text-sm">{campaign.description}</p>
+                    </div>
+                    <div class="px-4 py-2 rounded-xl text-xs font-medium text-white
+                                {campaign.status_phase === 'active' ? 'bg-green-500' : 'bg-yellow-500'}">
+                        {campaign.status_phase}
+                    </div>
+                </div>
+
+                <!-- Multi-Asset Progress Section -->
+<div class="grid grid-cols-2 gap-4 mb-6">
+    <!-- First Asset -->
+    <div class="p-4 rounded-lg bg-gray-700 border-l-4 border-cyan-500">
+        <div class="flex items-center gap-2 mb-3">
+            {#if campaign.base_icon_url}
+                <img src={campaign.base_icon_url} alt={campaign.base_name} class="w-6 h-6 rounded-full"/>
+            {/if}
+            <span class="text-white font-medium">{campaign.base_name}</span>
+           
+        </div>
+        <div class="space-y-2">
+            <div class="flex justify-between">
+                <span class="text-gray-400 text-sm">Progress:</span>
+                <span class="text-white">
+                    {calculateProgress(
+                        getContributionAmount(campaign, campaign.base_token_id),
+                        campaign.base_target_amount
+                    ).toFixed(1)}%
+                </span>
+            </div>
+            <div class="w-full bg-gray-800 rounded-full h-2">
+                <div 
+                    class="bg-cyan-500 rounded-full h-2 transition-all duration-500" 
+                    style="width: {calculateProgress(
+                        getContributionAmount(campaign, campaign.base_token_id),
+                        campaign.base_target_amount
+                    )}%"
+                />
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-400">
+                    Raised: {getContributionAmount(campaign, campaign.base_token_id)} 
+                </span>
+                <span class="text-gray-400">
+                    Target: {campaign.base_target_amount.toLocaleString()} 
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Second Asset -->
+    {#if campaign.token_target_amount}
+        <div class="p-4 rounded-lg bg-gray-700 border-l-4 border-purple-500">
+            <div class="flex items-center gap-2 mb-3">
+                {#if campaign.token_icon_url}
+                    <img src={campaign.token_icon_url} alt={campaign.token_name} class="w-6 h-6 rounded-full"/>
+                {/if}
+                <span class="text-white font-medium">{campaign.token_name}</span>
+              
+            </div>
+            <div class="space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-gray-400 text-sm">Progress:</span>
+                    <span class="text-white">
+                        {calculateProgress(
+                            getContributionAmount(campaign, campaign.token_policy_id),
+                            campaign.token_target_amount
+                        ).toFixed(1)}%
+                    </span>
+                </div>
+                <div class="w-full bg-gray-800 rounded-full h-2">
+                    <div 
+                        class="bg-purple-500 rounded-full h-2 transition-all duration-500" 
+                        style="width: {calculateProgress(
+                            getContributionAmount(campaign, campaign.token_policy_id),
+                            campaign.token_target_amount
+                        )}%"
+                    />
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-400">
+                        Raised: {getContributionAmount(campaign, campaign.token_policy_id)} 
+                    </span>
+                    <span class="text-gray-400">
+                        Target: {campaign.token_target_amount.toLocaleString()} 
+                    </span>
+                </div>
+            </div>
+        </div>
+    {/if}
+</div>
+
+                <!-- Campaign Details for multiassetlp -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <!-- First Token Min/Max -->
+    <div class="p-3 rounded-lg">
+        <div class="text-gray-400 text-sm mb-1">Min {campaign.base_name}</div>
+        <div class="text-white font-medium">{nFormatter(campaign.min_contribution)}</div>
+    </div>
+    <div class="p-3 rounded-lg">
+        <div class="text-gray-400 text-sm mb-1">Max {campaign.base_name}</div>
+        <div class="text-white font-medium">{nFormatter(campaign.max_contribution)}</div>
+    </div>
+
+    <!-- Second Token Min/Max -->
+    <div class="p-3 rounded-lg">
+        <div class="text-gray-400 text-sm mb-1">Min {campaign.token_name}</div>
+        <div class="text-white font-medium">{nFormatter(campaign.token_min_contribution)}</div>
+    </div>
+    <div class="p-3 rounded-lg">
+        <div class="text-gray-400 text-sm mb-1">Max {campaign.token_name}</div>
+        <div class="text-white font-medium">{nFormatter(campaign.token_max_contribution)}</div>
+    </div>
+
+    <!-- LP Fee spanning full width -->
+    <div class="p-3 rounded-lg col-span-full" >
+        <div class="text-gray-400 text-sm mb-1">LP Fee</div>
+        <div class="text-white font-medium">{campaign.lp_fee}%</div>
+    </div>
+</div>
+               
+                <!-- Social Links -->
+                {#if campaign.website || campaign.telegram || campaign.twitter || campaign.discord}
+                    <div class="flex justify-center space-x-6 mb-6">
+                        {#if campaign.website}
+                            <a href={campaign.website} target="_blank" rel="noopener noreferrer" 
+                               class="text-gray-400 hover:text-purple-500 transition-colors">
+                                <Globe size={20} />
+                            </a>
+                        {/if}
+                        {#if campaign.telegram}
+                            <a href={campaign.telegram} target="_blank" rel="noopener noreferrer" 
+                               class="text-gray-400 hover:text-purple-500 transition-colors">
+                                <MessageCircle size={20} />
+                            </a>
+                        {/if}
+                        {#if campaign.twitter}
+                            <a href={campaign.twitter} target="_blank" rel="noopener noreferrer" 
+                               class="text-gray-400 hover:text-purple-500 transition-colors">
+                                <Twitter size={20} />
+                            </a>
+                        {/if}
+                        {#if campaign.discord}
+                            <a href={campaign.discord} target="_blank" rel="noopener noreferrer" 
+                               class="text-gray-400 hover:text-purple-500 transition-colors">
+                                <MessagesSquare size={20} />
+                            </a>
+                        {/if}
+                    </div>
+                {/if}
+
                 <!-- Action Button -->
                 <button
                     class="w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg 
@@ -542,10 +737,10 @@ function handleTxSubmitted(event) {
                 </button>
             </div>
 
-        {:else if campaign.campaign_type === 'crowdfund'}
+        {:else}
             <!-- Crowdfund Campaign Card -->
             <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
-                <!-- Header with Crowdfund Badge -->
+                <!-- Header -->
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex-1">
                         <div class="flex items-center gap-3 mb-2">
@@ -570,6 +765,7 @@ function handleTxSubmitted(event) {
                                 <img src={campaign.base_icon_url} alt={campaign.base_name} class="w-6 h-6 rounded-full"/>
                             {/if}
                             <span class="text-white font-medium">{campaign.base_name}</span>
+                            <span class="text-gray-400 text-sm">({formatAddress(campaign.base_token_id, 6)})</span>
                         </div>
                         
                         <!-- Progress Bar -->
@@ -577,21 +773,26 @@ function handleTxSubmitted(event) {
                             <div class="flex justify-between items-center mb-2">
                                 <div class="text-gray-400 text-sm">Progress</div>
                                 <div class="text-white text-sm font-medium">
-                                    {(campaignBalances[campaign.id]?.baseToken?.percentage || 0).toFixed(2)}%
+                                    {calculateProgress(
+                                        getContributionAmount(campaign, campaign.base_token_id),
+                                        campaign.base_target_amount
+                                    ).toFixed(2)}%
                                 </div>
                             </div>
                             <div class="w-full bg-gray-800 rounded-full h-2 mb-2">
                                 <div 
-                                    class="bg-blue-500 rounded-full h-2 transition-all duration-500" 
-                                    style="width: {campaignBalances[campaign.id]?.baseToken?.percentage || 0}%"
+                                    class="bg-blue-500 rounded-full h-2 transition-all duration-500" style="width: {calculateProgress(
+                                        getContributionAmount(campaign, campaign.base_token_id),
+                                        campaign.base_target_amount
+                                    )}%"
                                 />
                             </div>
                             <div class="flex justify-between text-sm">
                                 <div class="text-gray-400">
-                                    Raised: {(campaignBalances[campaign.id]?.baseToken?.current || 0).toLocaleString()} {campaign.base_name}
+                                    Raised: {getContributionAmount(campaign, campaign.base_token_id)} {campaign.base_name}
                                 </div>
                                 <div class="text-gray-400">
-                                    Target: {campaign.target_raise.toLocaleString()} {campaign.base_name}
+                                    Target: {campaign.base_target_amount.toLocaleString()} {campaign.base_name}
                                 </div>
                             </div>
                         </div>
@@ -612,197 +813,55 @@ function handleTxSubmitted(event) {
                         <div class="text-gray-400 text-sm mb-1">Platform Fee</div>
                         <div class="text-white font-medium">{MEW_FEE_PERCENTAGE}%</div>
                     </div>
-
-                    <!-- Token ID -->
-                    <div class="p-3 rounded-lg bg-gray-700 md:col-span-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-400 text-sm">Token ID:</span>
-                            <button 
-                                class="flex items-center gap-2 px-3 py-1 rounded-lg bg-gray-600 hover:bg-gray-500 text-white text-sm"
-                                on:click={() => navigator.clipboard.writeText(campaign.token_id)}
-                            >
-                                <span class="truncate max-w-[150px]">{campaign.token_id}</span>
-                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
                 </div>
 
-                <!-- Social Links -->
-                {#if campaign.website || campaign.telegram || campaign.twitter || campaign.discord}
-                    <div class="flex justify-center space-x-6 mb-6">
-                        {#if campaign.website}
-                            <a href={campaign.website} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-blue-500 transition-colors">
-                                <Globe size={20} />
-                            </a>
-                        {/if}
-                        {#if campaign.telegram}
-                            <a href={campaign.telegram} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-blue-500 transition-colors">
-                                <MessageCircle size={20} />
-                            </a>
-                        {/if}
-                        {#if campaign.twitter}
-                            <a href={campaign.twitter} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-blue-500 transition-colors">
-                                <Twitter size={20} />
-                            </a>
-                        {/if}
-                        {#if campaign.discord}
-                            <a href={campaign.discord} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-blue-500 transition-colors">
-                                <MessagesSquare size={20} />
-                            </a>
-                        {/if}
+                <!-- Crowdfunder Address -->
+                {#if campaign.recipient_address}
+                    <div class="p-3 rounded-lg bg-gray-700 mb-6">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400 text-sm">Crowdfunder:</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-white text-sm">{formatAddress(campaign.recipient_address)}</span>
+                                <button 
+                                    class="p-1 rounded hover:bg-gray-600 transition-colors"
+                                    on:click={() => {
+                                        navigator.clipboard.writeText(campaign.recipient_address);
+                                        showCustomToast('Address copied', 2000, 'success');
+                                    }}
+                                >
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 {/if}
 
-                <!-- Action Button -->
-                <button
-                    class="w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg 
-                           transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    on:click={() => {
-                        if (campaign.status_phase === 'active') {
-                            selectedCampaign = campaign;
-                            showContributeModal = true;
-                        }
-                    }}
-                    disabled={campaign.status_phase !== 'active'}
-                >
-                    {#if campaign.status_phase === 'active'}
-                        Contribute
-                    {:else}
-                        Coming Soon
-                    {/if}
-                </button>
-            </div>
-
-        {:else if !campaign.mint_new_token}
-            <!-- LP Creation Campaign Card -->
-            <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
-                <!-- Header with LP Badge -->
-                <div class="flex justify-between items-start mb-4">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-3 mb-2">
-                            <h2 class="text-2xl font-bold text-white">{campaign.title}</h2>
-                            <span class="px-3 py-1 rounded-lg text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/20">
-                                LP Creation
-                            </span>
-                        </div>
-                        <p class="text-gray-400 text-sm">{campaign.description}</p>
-                    </div>
-                    <div class="px-4 py-2 rounded-xl text-xs font-medium text-white
-                              {campaign.status_phase === 'active' ? 'bg-green-500' : 'bg-yellow-500'}">
-                        {campaign.status_phase}
-                    </div>
-                </div>
-
-                <!-- LP Pair Information -->
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <!-- First Token -->
-                    <div class="p-4 rounded-lg bg-gray-700 border-l-4 border-cyan-500">
-                        <div class="flex items-center gap-2 mb-3">
-                            {#if campaign.base_icon_url}
-                                <img src={campaign.base_icon_url} alt={campaign.base_name} class="w-6 h-6 rounded-full"/>
-                            {/if}
-                            <span class="text-white font-medium">{campaign.base_name}</span>
-                        </div>
-                        <div class="space-y-2">
-                            <div class="flex justify-between">
-                                <span class="text-gray-400 text-sm">Target:</span>
-                                <span class="text-white">{nFormatter(campaign.target_raise)} {campaign.base_name}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400 text-sm">Progress:</span>
-                                <span class="text-white">{(campaignBalances[campaign.id]?.baseToken?.percentage || 0).toFixed(1)}%</span>
-                            </div>
-                        </div>
-                        <div class="mt-3 w-full bg-gray-800 rounded-full h-1.5">
-                            <div 
-                                class="bg-cyan-500 rounded-full h-1.5 transition-all duration-500" 
-                                style="width: {campaignBalances[campaign.id]?.baseToken?.percentage || 0}%"
-                            />
-                        </div>
-                    </div>
-
-                    <!-- Second Token -->
-                    <div class="p-4 rounded-lg bg-gray-700 border-l-4 border-purple-500">
-                        <div class="flex items-center gap-2 mb-3">
-                            {#if campaign.token_icon_url}
-                                <img src={campaign.token_icon_url} alt={campaign.token_name} class="w-6 h-6 rounded-full"/>
-                            {/if}
-                            <span class="text-white font-medium">{campaign.token_name}</span>
-                        </div>
-                        <div class="space-y-2">
-                            <div class="flex justify-between">
-                                <span class="text-gray-400 text-sm">Target:</span>
-                                <span class="text-white">{nFormatter(campaign.token_target_amount)} {campaign.token_name}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400 text-sm">Progress:</span>
-                                <span class="text-white">{(campaignBalances[campaign.id]?.projectToken?.percentage || 0).toFixed(1)}%</span>
-                            </div>
-                        </div>
-                        <div class="mt-3 w-full bg-gray-800 rounded-full h-1.5">
-                            <div 
-                                class="bg-purple-500 rounded-full h-1.5 transition-all duration-500" 
-                                style="width: {campaignBalances[campaign.id]?.projectToken?.percentage || 0}%"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- LP Details Grid -->
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">Min Contribution</div>
-                        <div class="text-white font-medium">{nFormatter(campaign.min_contribution)} {campaign.base_name}</div>
-                    </div>
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">Max Contribution</div>
-                        <div class="text-white font-medium">{nFormatter(campaign.max_contribution)} {campaign.base_name}</div>
-                    </div>
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">LP Fee</div>
-                        <div class="text-white font-medium">{campaign.lp_fee}%</div>
-                    </div>
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">Platform Fee</div>
-                        <div class="text-white font-medium">{MEW_FEE_PERCENTAGE}%</div>
-                    </div>
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">Mew LP Fee</div>
-                        <div class="text-white font-medium">3%</div>
-                    </div>
-                </div>
-
                 <!-- Social Links -->
                 {#if campaign.website || campaign.telegram || campaign.twitter || campaign.discord}
                     <div class="flex justify-center space-x-6 mb-6">
                         {#if campaign.website}
                             <a href={campaign.website} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-cyan-500 transition-colors">
+                               class="text-gray-400 hover:text-blue-500 transition-colors">
                                 <Globe size={20} />
                             </a>
                         {/if}
                         {#if campaign.telegram}
                             <a href={campaign.telegram} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-cyan-500 transition-colors">
+                               class="text-gray-400 hover:text-blue-500 transition-colors">
                                 <MessageCircle size={20} />
                             </a>
                         {/if}
                         {#if campaign.twitter}
                             <a href={campaign.twitter} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-cyan-500 transition-colors">
+                               class="text-gray-400 hover:text-blue-500 transition-colors">
                                 <Twitter size={20} />
                             </a>
                         {/if}
                         {#if campaign.discord}
                             <a href={campaign.discord} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-cyan-500 transition-colors">
+                               class="text-gray-400 hover:text-blue-500 transition-colors">
                                 <MessagesSquare size={20} />
                             </a>
                         {/if}
