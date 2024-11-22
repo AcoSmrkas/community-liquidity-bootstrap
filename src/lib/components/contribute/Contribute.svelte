@@ -311,14 +311,24 @@ function handleTxSubmitted(event) {
     }
 
     function calculateProgress(contribution, targetAmount) {
-        if (!targetAmount || !contribution) return 0;
-        return Math.min((contribution / parseFloat(targetAmount)) * 100, 100);
-    }
+    if (!targetAmount || !contribution) return 0;
+    const basePercentage = (contribution / parseFloat(targetAmount)) * 100;
+    return Math.min(basePercentage, 100); // Ensure the progress doesn't exceed 100%
+}
 
+function formatProgress(percentage) {
+    if (percentage <= 100) return percentage.toFixed(2);
+    return `+${(percentage - 100).toFixed(2)}`;
+}
     function getContributionAmount(campaign, tokenId) {
-        const contribution = campaign.contributions?.find(c => c.asset === tokenId);
-        return contribution ? contribution.amount : 0;
+    const ergoContribution = campaign.contributions?.find(c => c.asset === 'ERG');
+    if (ergoContribution) {
+        return ergoContribution.amount;
     }
+    const contribution = campaign.contributions?.find(c => c.asset === tokenId);
+    return contribution ? contribution.amount : 0;
+}
+
         // Add this to your existing script
         let selectedStatus = 'active'; // Default filter
     
@@ -482,6 +492,7 @@ function handleTxSubmitted(event) {
                 </div>
 
                 <!-- Progress Section -->
+                <div class="p-4 rounded-lg bg-gray-700 border-l-4 border-purple-500">
                 <div class="mb-6">
                     <div class="flex justify-between items-center mb-2">
                         <div class="text-gray-400 text-sm">Progress</div>
@@ -506,11 +517,11 @@ function handleTxSubmitted(event) {
                             Raised: {getContributionAmount(campaign, campaign.base_token_id)} {campaign.base_name}
                         </div>
                         <div class="text-gray-400">
-                            Target: {campaign.base_target_amount.toLocaleString()} {campaign.base_name}
+                            Min Target: {campaign.base_target_amount.toLocaleString()} {campaign.base_name}
                         </div>
                     </div>
                 </div>
-
+            </div>
                 <!-- Campaign Details -->
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                     <div class="p-3 rounded-lg bg-gray-700">
