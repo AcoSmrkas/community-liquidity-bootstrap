@@ -8,26 +8,39 @@
 
     let timeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 };
     let intervalId;
+    let shouldShow = false;
 
     function parseDateTime(dateTimeString) {
         if (!dateTimeString) return null;
-        
-        // Parse "YYYY-MM-DD HH:mm:ss.SSS"
         const date = new Date(dateTimeString);
         return isNaN(date.getTime()) ? null : date;
     }
 
     function calculateTimeLeft() {
         const now = new Date().getTime();
-        const targetDate = status === 'upcoming' ? 
-            parseDateTime(startDate)?.getTime() : 
-            parseDateTime(endDate)?.getTime();
+        const start = parseDateTime(startDate)?.getTime();
+        const end = parseDateTime(endDate)?.getTime();
         
-        if (!targetDate) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+        if (!start || !end) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
         
-        const difference = targetDate - now;
+        // Determine if we should show the countdown
+        if (now < start) {
+            shouldShow = true;
+            return calculateDifference(now, start);
+        } else if (now < end) {
+            shouldShow = true;
+            return calculateDifference(now, end);
+        } else {
+            shouldShow = false;
+            return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+        }
+    }
 
+    function calculateDifference(start, end) {
+        const difference = end - start;
+        
         if (difference <= 0) {
+            shouldShow = false;
             return { days: 0, hours: 0, minutes: 0, seconds: 0 };
         }
 
@@ -52,66 +65,60 @@
         if (intervalId) clearInterval(intervalId);
     });
 
-    $: timeString = status === 'upcoming' ? 'Starts in:' : 'Ends in:';
-    $: isEnded = status === 'ended' || 
-        (timeLeft.days === 0 && timeLeft.hours === 0 && 
-         timeLeft.minutes === 0 && timeLeft.seconds === 0);
+    $: timeString = new Date().getTime() < parseDateTime(startDate)?.getTime() 
+        ? 'Starts in:' 
+        : 'Ends in:';
 </script>
 
-<div class="countdown-container">
-    {#if isEnded}
-        <div class="ended-status">
-            <span class="status-text">Campaign Ended</span>
-        </div>
-    {:else}
+{#if shouldShow}
+    <div class="countdown-container">
         <div class="timer-container">
             <div class="timer-header">
-                <Clock size={20} class="clock-icon" />
+                <Clock class="clock-icon" size={16} />
                 <span class="timer-label">{timeString}</span>
             </div>
-            <div class="time-units">
+            <div class="time-blocks">
                 {#if timeLeft.days > 0}
-                    <div class="time-unit">
+                    <div class="time-block">
                         <span class="time-value">{timeLeft.days}</span>
                         <span class="time-label">days</span>
                     </div>
                 {/if}
-                <div class="time-unit">
+                <div class="time-block">
                     <span class="time-value">{timeLeft.hours.toString().padStart(2, '0')}</span>
                     <span class="time-label">hrs</span>
                 </div>
-                <div class="time-unit">
+                <div class="time-block">
                     <span class="time-value">{timeLeft.minutes.toString().padStart(2, '0')}</span>
                     <span class="time-label">min</span>
                 </div>
-                <div class="time-unit">
+                <div class="time-block">
                     <span class="time-value">{timeLeft.seconds.toString().padStart(2, '0')}</span>
                     <span class="time-label">sec</span>
                 </div>
             </div>
         </div>
-    {/if}
-</div>
+    </div>
+{/if}
 
 <style>
     .countdown-container {
-        margin: 1rem 0;
-        font-family: 'Inter', sans-serif;
+        width: 100%;
+        margin: 0.75rem 0;
     }
 
     .timer-container {
         background: var(--footer);
-        border-radius: 12px;
-        padding: 1rem 1.5rem;
         border: 1px solid var(--main-color);
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
     }
 
     .timer-header {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-        color: var(--main-color);
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
     }
 
     .clock-icon {
@@ -119,75 +126,94 @@
     }
 
     .timer-label {
-        font-size: 1rem;
-        font-weight: 500;
         color: var(--main-color);
+        font-size: 0.875rem;
+        font-weight: 500;
     }
 
-    .time-units {
+    .time-blocks {
         display: flex;
-        gap: 1.5rem;
-        align-items: center;
         justify-content: center;
+        gap: 1rem;
     }
 
-    .time-unit {
+    .time-block {
+        position: relative;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.25rem;
-        position: relative;
-        min-width: 3.5rem;
+        min-width: 2.5rem;
     }
 
-    .time-unit:not(:last-child)::after {
+    .time-block:not(:last-child)::after {
         content: ':';
         position: absolute;
-        right: -1rem;
-        top: 25%;
+        right: -0.625rem;
+        top: 0;
         color: var(--main-color);
-        font-weight: 600;
-        font-size: 1.5rem;
+        font-weight: 500;
     }
 
     .time-value {
-        font-size: 2rem;
-        font-weight: 700;
         color: white;
-        font-variant-numeric: tabular-nums;
-        text-align: center;
+        font-size: 1.25rem;
+        font-weight: 600;
         line-height: 1;
+        font-variant-numeric: tabular-nums;
     }
 
     .time-label {
-        font-size: 0.75rem;
         color: var(--main-color);
-        font-weight: 500;
+        font-size: 0.625rem;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        margin-top: 0.25rem;
     }
 
-    .ended-status {
-        background: var(--footer);
-        border: 1px solid var(--main-color);
-        padding: 1rem;
-        border-radius: 12px;
-        text-align: center;
+    @media (max-width: 480px) {
+        .timer-container {
+            padding: 0.5rem 0.75rem;
+        }
+
+        .time-blocks {
+            gap: 0.75rem;
+        }
+
+        .time-block {
+            min-width: 2rem;
+        }
+
+        .time-value {
+            font-size: 1rem;
+        }
+
+        .time-label {
+            font-size: 0.5rem;
+        }
+
+        .time-block:not(:last-child)::after {
+            right: -0.5rem;
+        }
     }
 
-    .status-text {
-        color: var(--main-color);
-        font-weight: 600;
-        font-size: 1rem;
-    }
+    @media (max-width: 360px) {
+        .timer-container {
+            padding: 0.5rem;
+        }
 
-    .time-unit:last-child .time-value {
-        animation: pulse 1s infinite;
-    }
+        .time-blocks {
+            gap: 0.5rem;
+        }
 
-    @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.7; }
-        100% { opacity: 1; }
+        .time-block {
+            min-width: 1.75rem;
+        }
+
+        .timer-header {
+            margin-bottom: 0.375rem;
+        }
+
+        .timer-label {
+            font-size: 0.75rem;
+        }
     }
 </style>

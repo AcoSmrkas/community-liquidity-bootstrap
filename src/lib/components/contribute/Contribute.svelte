@@ -406,8 +406,7 @@
 
               
             </div>
-
-        {:else if campaign.campaign_type === 'mintpluslp'}
+            {:else if campaign.campaign_type === 'mintpluslp'}
             <!-- Mint + LP Campaign Card -->
             <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
                 <div class="flex justify-between items-start mb-4">
@@ -420,77 +419,99 @@
                     </div>
                     <StatusBadge status={getCampaignStatus(campaign)} />
                 </div>
-
-    <ProgressBar
-        currentAmount={getContributionAmount(campaign, campaign.base_token_id)}
-        targetAmount={campaign.base_target_amount}
-        tokenName={campaign.base_name}
-        accentColor="cyan"
-    />
-
-
-                <CountdownTimer
-                endDate={campaign.end_date}
-                startDate={campaign.start_date}
-                status={getCampaignStatus(campaign)}
-            />
-                <CampaignStats 
-                    stats={[
-                        { 
-                            label: 'Supply', 
-                            value: campaign.total_supply, 
-                            format: 'number' 
-                        },
-                        { 
-                            label: 'Initial Price', 
-                            value: campaign.initial_price, 
-                            suffix: campaign.base_name 
-                        },
-                        { 
-                            label: 'Min Contribution', 
-                            value: campaign.min_contribution, 
-                            format: 'number', 
-                            suffix: campaign.base_name 
-                        },
-                        { 
-                            label: 'Max Contribution', 
-                            value: campaign.max_contribution, 
-                            format: 'number', 
-                            suffix: campaign.base_name 
-                        },
-                        { 
-                            label: 'LP Fee', 
-                            value: campaign.lp_fee, 
-                            format: 'percentage' 
-                        }
-                    ]}
-                />
-
-                <SocialLinks 
-                    socials={{
-                        website: campaign.website,
-                        telegram: campaign.telegram,
-                        twitter: campaign.twitter,
-                        discord: campaign.discord
-                    }}
-                    accentColor="cyan"
-                />
-
-                <CampaignButton 
-                    status={getCampaignStatus(campaign)}
-                    startDate={campaign.start_date}
-                    onClick={() => {
-                        if (getCampaignStatus(campaign) === 'active') {
-                            selectedCampaign = campaign;
-                            showContributeModal = true;
-                        }
-                    }}
-                    loading={loading}
-                />
+        
+                {#if campaign.status_phase === 'ended'}
+                    <CampaignResults 
+                        campaign={{
+                            ...campaign,
+                            type: 'mintpluslp',
+                            minted_token_id: campaign.token_policy_id,
+                            pool_token_id: campaign.lp_token_id
+                        }} 
+                    />
+                {:else}
+                    <AssetInfo
+                        asset={{
+                            name: campaign.base_name,
+                            iconUrl: campaign.base_icon_url,
+                            tokenId: campaign.base_token_id,
+                            currentAmount: getContributionAmount(campaign, campaign.base_token_id),
+                            targetAmount: campaign.base_target_amount,
+                            progress: calculateProgress(
+                                getContributionAmount(campaign, campaign.base_token_id),
+                                campaign.base_target_amount
+                            )
+                        }}
+                        secondaryAsset={{
+                            name: campaign.token_name,
+                            iconUrl: campaign.token_icon_url,
+                            tokenId: campaign.token_policy_id,
+                            currentAmount: getContributionAmount(campaign, campaign.token_policy_id),
+                            targetAmount: campaign.token_target_amount,
+                            minAmount: campaign.min_token,
+                            maxAmount: campaign.max_token,
+                            progress: calculateProgress(
+                                getContributionAmount(campaign, campaign.token_policy_id),
+                                campaign.token_target_amount
+                            )
+                        }}
+                        campaignType="mintpluslp"
+                        showTokenId={true}
+                        stats={[
+                            {
+                                label: 'Min Contribution',
+                                value: campaign.min_contribution,
+                                format: 'number',
+                                suffix: campaign.base_name
+                            },
+                            {
+                                label: 'Max Contribution',
+                                value: campaign.max_contribution,
+                                format: 'number',
+                                suffix: campaign.base_name
+                            },
+                            {
+                                label: 'Platform Fee',
+                                value: campaign.platform_fee,
+                                format: 'percentage'
+                            },
+                            {
+                                label: 'LP Fee',
+                                value: campaign.lp_fee,
+                                format: 'percentage'
+                            }
+                        ]}
+                        startDate={campaign.start_date}
+                        endDate={campaign.end_date}
+                        status={getCampaignStatus(campaign)}
+                        poolId={campaign.lp_token_id}
+                        totalSupply={campaign.total_supply}
+                        initialPrice={campaign.initial_price}
+                    />
+                    <SocialLinks
+                        socials={{
+                            website: campaign.website,
+                            telegram: campaign.telegram,
+                            twitter: campaign.twitter,
+                            discord: campaign.discord
+                        }}
+                        accentColor="cyan"
+                    />
+                    <CampaignButton
+                        status={getCampaignStatus(campaign)}
+                        startDate={campaign.start_date}
+                        onClick={() => {
+                            if (getCampaignStatus(campaign) === 'active') {
+                                selectedCampaign = campaign;
+                                showContributeModal = true;
+                            }
+                        }}
+                        loading={loading}
+                    />
+                {/if}
             </div>
-
-        {:else if campaign.campaign_type === 'multiassetlp'}
-            <!-- Multi-Asset LP Campaign Card -->
+            {:else if campaign.campaign_type === 'multiassetlp'}
+            <!-- Multi Asset LP Campaign Card -->
             <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
                 <div class="flex justify-between items-start mb-4">
                     <div>
@@ -502,12 +523,22 @@
                     </div>
                     <StatusBadge status={getCampaignStatus(campaign)} />
                 </div>
-
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <AssetInfo 
+        
+                {#if campaign.status_phase === 'ended'}
+                    <CampaignResults 
+                        campaign={{
+                            ...campaign,
+                            type: 'multiassetlp',
+                            pool_token_id: campaign.lp_token_id,
+                            mewfinance_url: `https://app.mewfinance.com/pools/${campaign.lp_token_id}`
+                        }} 
+                    />
+                {:else}
+                    <AssetInfo
                         asset={{
                             name: campaign.base_name,
                             iconUrl: campaign.base_icon_url,
+                            tokenId: campaign.base_token_id,
                             currentAmount: getContributionAmount(campaign, campaign.base_token_id),
                             targetAmount: campaign.base_target_amount,
                             progress: calculateProgress(
@@ -515,87 +546,74 @@
                                 campaign.base_target_amount
                             )
                         }}
+                        secondaryAsset={{
+                            name: campaign.token_name,
+                            iconUrl: campaign.token_icon_url,
+                            tokenId: campaign.token_policy_id,
+                            currentAmount: getContributionAmount(campaign, campaign.token_policy_id),
+                            targetAmount: campaign.token_target_amount,
+                            minAmount: campaign.min_token,
+                            maxAmount: campaign.max_token,
+                            progress: calculateProgress(
+                                getContributionAmount(campaign, campaign.token_policy_id),
+                                campaign.token_target_amount
+                            )
+                        }}
+                        campaignType="multiassetlp"
+                        showTokenId={true}
+                        stats={[
+                            {
+                                label: 'Min Contribution',
+                                value: campaign.min_contribution,
+                                format: 'number',
+                                suffix: campaign.base_name
+                            },
+                            {
+                                label: 'Max Contribution',
+                                value: campaign.max_contribution,
+                                format: 'number',
+                                suffix: campaign.base_name
+                            },
+                            {
+                                label: 'Platform Fee',
+                                value: campaign.platform_fee,
+                                format: 'percentage'
+                            },
+                            {
+                                label: 'LP Fee',
+                                value: campaign.lp_fee,
+                                format: 'percentage'
+                            }
+                        ]}
+                        startDate={campaign.start_date}
+                        endDate={campaign.end_date}
+                        status={getCampaignStatus(campaign)}
+                        poolId={campaign.lp_token_id}
+                        totalSupply={campaign.total_supply}
+                        initialPrice={campaign.initial_price}
+                    />
+                    <SocialLinks
+                        socials={{
+                            website: campaign.website,
+                            telegram: campaign.telegram,
+                            twitter: campaign.twitter,
+                            discord: campaign.discord
+                        }}
                         accentColor="cyan"
                     />
-
-                    {#if campaign.token_target_amount}
-                        <AssetInfo 
-                            asset={{
-                                name: campaign.token_name,
-                                iconUrl: campaign.token_icon_url,
-                                currentAmount: getContributionAmount(campaign, campaign.token_policy_id),
-                                targetAmount: campaign.token_target_amount,
-                                progress: calculateProgress(
-                                    getContributionAmount(campaign, campaign.token_policy_id),
-                                    campaign.token_target_amount
-                                )
-                            }}
-                            accentColor="purple"
-                        />
-                    {/if}
-                </div>
-
-                <CountdownTimer
-    endDate={campaign.end_date}
-    startDate={campaign.start_date}
-    status={getCampaignStatus(campaign)}
-/>
-
-                <CampaignStats 
-                    stats={[
-                        { 
-                            label: `Min ${campaign.base_name}`, 
-                            value: campaign.min_contribution, 
-                            format: 'number' 
-                        },
-                        { 
-                            label: `Max ${campaign.base_name}`, 
-                            value: campaign.max_contribution, 
-                            format: 'number' 
-                        },
-                        { 
-                            label: `Min ${campaign.token_name}`, 
-                            value: campaign.min_token, 
-                            format: 'number' 
-                        },
-                        { 
-                            label: `Max ${campaign.token_name}`, 
-                            value: campaign.max_token, 
-                            format: 'number' 
-                        },
-                        { 
-                            label: 'LP Fee', 
-                            value: campaign.lp_fee, 
-                            format: 'percentage',
-                            fullWidth: true 
-                        }
-                    ]}
-                    columns={4}
-                />
-
-                <SocialLinks 
-                    socials={{
-                        website: campaign.website,
-                        telegram: campaign.telegram,
-                        twitter: campaign.twitter,
-                        discord: campaign.discord
-                    }}
-                    accentColor="purple"
-                />
-
-                <CampaignButton 
-                    status={getCampaignStatus(campaign)}
-                    startDate={campaign.start_date}
-                    onClick={() => {
-                        if (getCampaignStatus(campaign) === 'active') {
-                            selectedCampaign = campaign;
-                            showContributeModal = true;
-                        }
-                    }}
-                    loading={loading}
-                />
+                    <CampaignButton
+                        status={getCampaignStatus(campaign)}
+                        startDate={campaign.start_date}
+                        onClick={() => {
+                            if (getCampaignStatus(campaign) === 'active') {
+                                selectedCampaign = campaign;
+                                showContributeModal = true;
+                            }
+                        }}
+                        loading={loading}
+                    />
+                {/if}
             </div>
-
         {:else}
             <!-- Crowdfund Campaign Card -->
             <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
@@ -610,49 +628,51 @@
                     <StatusBadge status={getCampaignStatus(campaign)} />
                 </div>
 
-                <AssetInfo 
-                    asset={{
-                        name: campaign.base_name,
-                        iconUrl: campaign.base_icon_url,
-                        tokenId: campaign.base_token_id,
-                        currentAmount: getContributionAmount(campaign, campaign.base_token_id),
-                        targetAmount: campaign.base_target_amount,
-                        progress: calculateProgress(
-                            getContributionAmount(campaign, campaign.base_token_id),
-                            campaign.base_target_amount
-                        )
-                    }}
-                    showTokenId={true}
-                    accentColor="blue"
-                />
-
-                <CountdownTimer
-    endDate={campaign.end_date}
-    startDate={campaign.start_date}
-    status={getCampaignStatus(campaign)}
-/>
-
-                <CampaignStats 
-                    stats={[
-                        { 
-                            label: 'Min Contribution', 
-                            value: campaign.min_contribution, 
-                            format: 'number',
-                            suffix: campaign.base_name 
-                        },
-                        { 
-                            label: 'Max Contribution', 
-                            value: campaign.max_contribution, 
-                            format: 'number',
-                            suffix: campaign.base_name 
-                        },
-                        { 
-                            label: 'Platform Fee', 
-                            value: MEW_FEE_PERCENTAGE, 
-                            format: 'percentage' 
-                        }
-                    ]}
-                />
+                <AssetInfo
+                asset={{
+                    name: campaign.base_name,
+                    iconUrl: campaign.base_icon_url,
+                    currentAmount: getContributionAmount(campaign, campaign.base_token_id),
+                    targetAmount: campaign.base_target_amount,
+                    progress: calculateProgress(
+                        getContributionAmount(campaign, campaign.base_token_id),
+                        campaign.base_target_amount
+                    )
+                }}
+                secondaryAsset={campaign.token_target_amount ? {
+                    name: campaign.token_name,
+                    iconUrl: campaign.token_icon_url,
+                    currentAmount: getContributionAmount(campaign, campaign.token_policy_id),
+                    targetAmount: campaign.token_target_amount,
+                    progress: calculateProgress(
+                        getContributionAmount(campaign, campaign.token_policy_id),
+                        campaign.token_target_amount
+                    )
+                } : null}
+                showTokenId={true}
+                stats={[
+                    {
+                        label: 'Min Contribution',
+                        value: campaign.min_contribution,
+                        format: 'number',
+                        suffix: campaign.base_name
+                    },
+                    {
+                        label: 'Max Contribution',
+                        value: campaign.max_contribution,
+                        format: 'number',
+                        suffix: campaign.base_name
+                    },
+                    {
+                        label: 'Platform Fee',
+                        value: campaign.platform_fee,
+                        format: 'percentage'
+                    },
+                ]}
+                columns={3}
+                startDate={campaign.start_date}
+                endDate={campaign.end_date}
+            />
 
                 {#if campaign.recipient_address}
                     <CopyableAddress

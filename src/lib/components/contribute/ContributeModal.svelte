@@ -156,15 +156,7 @@
         }
     }
 
-    function handleImageError(e, isBaseToken) {
-        if (isBaseToken) {
-            e.target.src = campaign.base_name === 'ERG'
-                ? "https://spectrum.fi/logos/ergo/0000000000000000000000000000000000000000000000000000000000000000.svg"
-                : "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ada/asset1cvqgx3z9u8l54amkyk894tr23gyx63c6wpd7r2.svg";
-        } else {
-            e.target.src = "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg";
-        }
-    }
+
 </script>
 
 <svelte:window on:keydown={handleEscape}/>
