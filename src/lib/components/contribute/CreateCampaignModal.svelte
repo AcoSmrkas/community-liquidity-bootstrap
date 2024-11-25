@@ -18,7 +18,7 @@
         mint_new_token: true,
         total_supply: 0,
         initial_price: 0,
-        base_target_amount: 0,
+        target_raise: 0,
         min_contribution: 0,
         max_contribution: 0,
         liquidity_info: "100%",
@@ -271,7 +271,7 @@
                         <label class="block text-sm font-medium text-gray-400 mb-1">Target Raise</label>
                         <input 
                             type="number" 
-                            bind:value={campaignData.base_target_amount}
+                            bind:value={campaignData.target_raise}
                             class="w-full p-2 rounded-lg bg-gray-700 text-white border border-gray-600"
                             placeholder="Target Raise Amount"
                         />

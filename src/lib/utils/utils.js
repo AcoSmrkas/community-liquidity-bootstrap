@@ -328,3 +328,50 @@ export function getCommonBoxIds(array1, array2) {
     // Use filter and has method to find common boxIds
     return Array.from(set1).filter(boxId => set2.has(boxId));
 }
+
+export function getCampaignStatus(campaign) {
+  const now = new Date().getTime();
+  const startDate = campaign.start_date ? new Date(campaign.start_date).getTime() : null;
+  const endDate = new Date(campaign.end_date).getTime();
+  
+  if (campaign.status_phase === 'ended' || campaign.status_phase === 'inactive') {
+      return campaign.status_phase;
+  }
+  
+  if (startDate && now < startDate) return 'upcoming';
+  if (now > endDate) return 'ended';
+  if ((!startDate || now >= startDate) && now <= endDate) return 'active';
+  
+  return campaign.status_phase || 'inactive';
+}
+
+export function calculateProgress(current, target) {
+  if (!target || !current) return 0;
+  return Math.min((current / parseFloat(target)) * 100, 100);
+}
+
+export function getTimeRemaining(campaign) {
+  const now = new Date().getTime();
+  const endDate = new Date(campaign.end_date).getTime();
+  const timeRemaining = endDate - now;
+
+  if (timeRemaining <= 0) return 'Ended';
+
+  const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+
+  if (days > 0) {
+      return `${days}d ${hours}h remaining`;
+  } else if (hours > 0) {
+      return `${hours}h ${minutes}m remaining`;
+  } else {
+      return `${minutes}m remaining`;
+  }
+}
+
+export function formatAddress(address, length = 8) {
+  if (!address) return '';
+  return `${address.slice(0, length)}...${address.slice(-length)}`;
+}
+

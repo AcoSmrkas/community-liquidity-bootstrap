@@ -1,20 +1,32 @@
 <script>
-    import { onMount } from 'svelte';
-    import { sendErgoTx } from "$lib/contract/sendErgoTx.ts";
+    import { Clock } from 'lucide-svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { Globe, MessageCircle, Twitter, MessagesSquare } from 'lucide-svelte';
+    import { sendErgoTx } from "$lib/contract/sendErgoTx.ts";
     import { sendCardanoTx } from "$lib/contract/sendCardanoTx.ts";
     import ErgopayModal from '$lib/components/common/ErgopayModal.svelte';
     import ContributeModal from './ContributeModal.svelte';
+    import CountdownTimer from './countdown.svelte';
+    import CampaignButton from './button.svelte';
+    import StatusBadge from './StatusBadge.svelte';
+    import ProgressBar from './ProgressBar.svelte';
+    import CampaignTypeTag from './CampaignTypeTag.svelte';
+    import CampaignStats from './CampaignStats.svelte';
+    import SocialLinks from './SocialLinks.svelte';
+    import AssetInfo from './AssetInfo.svelte';
+    import CampaignResults from './CampaignResults.svelte';
+    import CopyableAddress from './CopyableAddress.svelte';
+    import CreateCampaignModal from './CreateCampaignModal.svelte';
     import { selected_wallet, connected_wallet_address } from "$lib/store/store.ts";
-    import { fetchBoxes, getBlockHeight, updateTempBoxes } from '$lib/api-explorer/explorer.ts';  
+    import { fetchBoxes, getBlockHeight, updateTempBoxes } from '$lib/api-explorer/explorer.ts';
     import { get } from "svelte/store";
     import { showCustomToast, isWalletConected, getCommonBoxIds, nFormatter } from '$lib/utils/utils.js';
     import { isWalletErgo, isWalletCardano } from '$lib/common/wallet.ts';
     import { API_HOST, MEW_FEE_PERCENTAGE } from '$lib/common/const.js';
     import axios from "axios";
     import { BigNumber } from 'bignumber.js';
-    import CreateCampaignModal from './CreateCampaignModal.svelte';
-   
+
+
     // Component state
     let showErgopayModal = false;
     let showContributeModal = false;
@@ -26,108 +38,187 @@
     let campaignBalances = {};
     let loading = false;
     let showCreateModal = false;
-// Campaign data management
-async function fetchCampaigns() {
-    try {
-        const response = await axios.get(`${API_HOST}/mew/fund/getCampaigns`);
-        if (!response.data.items) return;
+    let selectedStatus = 'active';
 
-        campaigns = response.data.items.map(campaign => ({
-            ...campaign,
-            // Using address prefix for network detection
-            network: campaign.recipient_address.startsWith('9') ? 'ergo' : 'cardano'
-        }));
-        await updateBalances();
-    } catch (error) {
-        showCustomToast('Failed to fetch campaigns', 5000, 'danger');
+    export let endDate;
+    export let startDate;
+    export let status;
+
+    let timeLeft = { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    let intervalId;
+
+    function calculateTimeLeft() {
+        const now = new Date().getTime();
+        const targetDate = status === 'upcoming' ? 
+            new Date(startDate).getTime() : 
+            new Date(endDate).getTime();
+        const difference = targetDate - now;
+
+        if (difference <= 0) {
+            return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+        }
+
+        return {
+            days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+            hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+            minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+            seconds: Math.floor((difference % (1000 * 60)) / 1000)
+        };
     }
-}
-async function updateBalances() {
-    const newBalances = {};
-    for (const campaign of campaigns) {
+
+    function updateTimer() {
+        timeLeft = calculateTimeLeft();
+    }
+
+    onMount(() => {
+        updateTimer();
+        intervalId = setInterval(updateTimer, 1000);
+    });
+
+    onDestroy(() => {
+        if (intervalId) clearInterval(intervalId);
+    });
+
+    $: timeString = status === 'upcoming' ? 'Starts in:' : 'Ends in:';
+    $: isEnded = status === 'ended' || 
+        (timeLeft.days === 0 && timeLeft.hours === 0 && 
+         timeLeft.minutes === 0 && timeLeft.seconds === 0);
+    // Utility Functions
+    function getTimeRemaining(campaign) {
+        const now = new Date().getTime();
+        const endDate = new Date(campaign.end_date).getTime();
+        const timeRemaining = endDate - now;
+
+        if (timeRemaining <= 0) return 'Ended';
+
+        const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((timeRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+
+        return days > 0 ? `${days}d ${hours}h remaining` :
+               hours > 0 ? `${hours}h ${minutes}m remaining` :
+               `${minutes}m remaining`;
+    }
+
+    function getCampaignStatus(campaign) {
+        const now = new Date().getTime();
+        const startDate = campaign.start_date ? new Date(campaign.start_date).getTime() : null;
+        const endDate = new Date(campaign.end_date).getTime();
+        
+        if (campaign.status_phase === 'ended' || campaign.status_phase === 'inactive') {
+            return campaign.status_phase;
+        }
+        
+        if (startDate && now < startDate) return 'upcoming';
+        if (now > endDate) return 'ended';
+        if ((!startDate || now >= startDate) && now <= endDate) return 'active';
+        
+        return campaign.status_phase || 'inactive';
+    }
+
+    function calculateProgress(contribution, targetAmount) {
+        if (!targetAmount || !contribution) return 0;
+        return Math.min((contribution / parseFloat(targetAmount)) * 100, 100);
+    }
+
+    function formatAddress(address, length = 8) {
+        if (!address) return '';
+        return `${address.slice(0, length)}...${address.slice(-length)}`;
+    }
+
+    function getContributionAmount(campaign, tokenId) {
+        if (!campaign.contributions) return 0;
+        const contribution = campaign.contributions.find(c => 
+            tokenId === null || tokenId === 'ERG' ? 
+            c.asset === 'ERG' : c.asset === tokenId
+        );
+        return contribution ? contribution.amount : 0;
+    }
+
+    function getFilteredCampaigns(campaigns) {
+        return campaigns.filter(c => 
+            c.network === activeTab && 
+            getCampaignStatus(c) === selectedStatus
+        );
+    }
+
+    // Campaign Management
+    async function fetchCampaigns() {
         try {
-            let basePercentage = 0;
-            let projectPercentage = 0;
+            const response = await axios.get(`${API_HOST}/mew/fund/getCampaigns`);
+            if (!response.data.items) return;
 
-            // Calculate base token percentage using total_contributed
-            basePercentage = Math.min((campaign.total_contributed / parseFloat(campaign.base_target_amount || 0)) * 100, 100);
+            campaigns = response.data.items.map(campaign => ({
+                ...campaign,
+                network: campaign.recipient_address.startsWith('9') ? 'ergo' : 'cardano'
+            }));
+            await updateBalances();
+        } catch (error) {
+            showCustomToast('Failed to fetch campaigns', 5000, 'danger');
+        }
+    }
 
-            // For LP creation campaigns with secondary token
-            if (!campaign.mint_new_token && campaign.token_target_amount > 0) {
-                projectPercentage = Math.min((campaign.total_contributed / parseFloat(campaign.base_target_amount || 0)) * 100, 100);
+    async function updateBalances() {
+        const newBalances = {};
+        for (const campaign of campaigns) {
+            try {
+                const basePercentage = Math.min(
+                    (campaign.total_contributed / parseFloat(campaign.base_target_amount || 0)) * 100, 
+                    100
+                );
+                
+                const projectPercentage = !campaign.mint_new_token && campaign.token_target_amount > 0 ?
+                    Math.min((campaign.total_contributed / parseFloat(campaign.base_target_amount || 0)) * 100, 100) : 0;
+
+                newBalances[campaign.id] = {
+                    baseToken: {
+                        current: campaign.total_contributed,
+                        percentage: basePercentage
+                    },
+                    projectToken: {
+                        current: campaign.total_contributed,
+                        percentage: projectPercentage
+                    }
+                };
+            } catch (error) {
+                console.error('Error calculating balances for campaign:', campaign.id, error);
+            }
+        }
+        campaignBalances = newBalances;
+    }
+
+    // Transaction Handlers
+    async function handleErgoContribution(amount, selectedAsset) {
+        const selectedWalletErgo = get(selected_wallet);
+
+        try {
+            let myAddress, height, utxos;
+
+            if (selectedWalletErgo === 'ergopay') {
+                myAddress = get(connected_wallet_address);
+                utxos = await fetchBoxes(myAddress);
+                height = await getBlockHeight();
+            } else {
+                myAddress = await ergo.get_change_address();
+                utxos = await fetchBoxes($connected_wallet_address);
+                height = await ergo.get_current_height();
             }
 
-            newBalances[campaign.id] = {
-                baseToken: {
-                    current: campaign.total_contributed,
-                    percentage: basePercentage
-                },
-                projectToken: {
-                    current: campaign.total_contributed,
-                    percentage: projectPercentage
-                }
-            };
+            const tokenId = selectedAsset.name === 'ERG' ? null : selectedAsset.tokenId;
+            const unsigned = await sendErgoTx(
+                myAddress, utxos, selectedAsset.name, amount, height,
+                selectedCampaign.id, tokenId, selectedCampaign.recipient_address,
+                selectedAsset.decimals
+            );
 
-        } catch (error) {
-            console.error('Error calculating balances for campaign:', campaign.id, error);
-            continue;
-        }
-    }
-    campaignBalances = newBalances;
-}
-function getCampaignStatus(campaign) {
-    if (campaign.status_phase) return campaign.status_phase;
+            if (selectedWalletErgo === 'ergopay') {
+                unsignedTx = unsigned;
+                isAuth = false;
+                showErgopayModal = true;
+                showContributeModal = false;
+                return null;
+            }
 
-    const now = new Date().getTime();
-    const endDate = new Date(campaign.end_date).getTime();
-    
-    if (now > endDate) return 'ended';
-    
-    const baseBalance = campaignBalances[campaign.id]?.baseToken?.current || 0;
-    const baseTarget = parseFloat(campaign.base_target_amount) || 0;
-    
-    if (baseBalance >= baseTarget) return 'ended';
-    
-    return 'active';
-}
-
-    async function handleErgoContribution(amount, selectedAsset) {
-    const selectedWalletErgo = get(selected_wallet);
-
-    try {
-        let myAddress, height, utxos;
-
-        if (selectedWalletErgo === 'ergopay') {
-            myAddress = get(connected_wallet_address);
-            utxos = await fetchBoxes(myAddress);
-            height = await getBlockHeight();
-        } else {
-            myAddress = await ergo.get_change_address();
-            utxos = await fetchBoxes($connected_wallet_address);
-            height = await ergo.get_current_height();
-        }
-
-        const tokenId = selectedAsset.name === 'ERG' ? null : selectedAsset.tokenId;
-
-        const unsigned = await sendErgoTx(
-            myAddress,
-            utxos,
-            selectedAsset.name,
-            amount,
-            height,
-            selectedCampaign.id,
-            tokenId,
-            selectedCampaign.recipient_address,
-            selectedAsset.decimals
-        );
-
-        if (selectedWalletErgo === 'ergopay') {
-            unsignedTx = unsigned;
-            isAuth = false;
-            showErgopayModal = true;
-            showContributeModal = false; // Close contribute modal first
-            return null;
-        } else {
             const signed = await ergo.sign_tx(unsigned);
             const txId = await ergo.submit_tx(signed);
 
@@ -137,33 +228,83 @@ function getCampaignStatus(campaign) {
                 updateTempBoxes(myAddress, usedBoxIds, newOutputs);
                 return txId;
             }
+        } catch (e) {
+            handleTransactionError(e);
+            return null;
         }
-    } catch (e) {
-        handleTransactionError(e);
-        return null;
     }
-}
 
     async function handleCardanoContribution(amount, selectedAsset) {
         const selectedWalletCardano = get(selected_wallet);
-
         try {
             const walletApi = await window.cardano[selectedWalletCardano].enable();
             if (!walletApi) throw new Error("Failed to enable wallet");
 
             return await sendCardanoTx(
-                walletApi,
-                selectedAsset.name,
-                amount,
-                selectedCampaign.id,
-                selectedAsset.tokenId,
-                selectedAsset.name,
-                selectedCampaign.recipient_address,
+                walletApi, selectedAsset.name, amount, selectedCampaign.id,
+                selectedAsset.tokenId, selectedAsset.name, selectedCampaign.recipient_address,
                 selectedAsset.decimals
             );
         } catch (e) {
             handleTransactionError(e);
             return null;
+        }
+    }
+   
+    let isModalOpen = false;
+
+    function openModal() {
+        isModalOpen = true;
+    }
+
+    function closeModal() {
+        isModalOpen = false;
+    }
+    async function handleContribution(event) {
+        const { amount, selectedAsset } = event.detail;
+        if (loading || !amount || !selectedAsset) return;
+        
+        loading = true;
+        try {
+            const network = activeTab;
+            const totalAmount = new BigNumber(amount);
+            const feePercentage = new BigNumber(MEW_FEE_PERCENTAGE).dividedBy(100);
+            const campaignAmount = totalAmount.dividedBy(new BigNumber(1).plus(feePercentage));
+            const feeAmount = totalAmount.minus(campaignAmount);
+
+            let txId;
+            if (network === 'ergo') {
+                const selectedWalletErgo = get(selected_wallet);
+                if (!isWalletErgo(selectedWalletErgo) || !isWalletConected()) {
+                    showCustomToast('Please connect an Ergo wallet first.', 1500, 'info');
+                    return;
+                }
+                txId = await handleErgoContribution(amount, selectedAsset);
+            } else {
+                const selectedWalletCardano = get(selected_wallet);
+                if (!isWalletCardano(selectedWalletCardano) || !isWalletConected()) {
+                    showCustomToast('Please connect a Cardano wallet first.', 1500, 'info');
+                    return;
+                }
+                txId = await handleCardanoContribution(amount, selectedAsset);
+            }
+
+            if (txId) {
+                showCustomToast(
+                    `Transaction submitted successfully.<br>TX ID: <a target="_new" href="${
+                        network === 'ergo' ? 'https://ergexplorer.com/transactions/' : 'https://cardanoscan.io/transaction/'
+                    }${txId}">${txId}</a>`,
+                    5000,
+                    'success'
+                );
+                
+                onContributeModalClose();
+                await updateBalances();
+            }
+        } catch (error) {
+            showCustomToast('Failed to process contribution. Please try again.', 5000, 'danger');
+        } finally {
+            loading = false;
         }
     }
 
@@ -177,205 +318,48 @@ function getCampaignStatus(campaign) {
         }
     }
 
-    function getDisclaimerMessage(campaign) {
-        const liquidityPercentage = parseFloat(campaign.liquidity_info);
-        if (liquidityPercentage === 100) {
-            return 'This campaign is providing 100% of the funds raised as liquidity.';
-        } else if (liquidityPercentage >= 75) {
-            return 'This campaign is providing a high percentage (75% or more) of the funds raised as liquidity.';
-        } else if (liquidityPercentage >= 50) {
-            return 'This campaign is providing a moderate percentage (50% or more) of the funds raised as liquidity.';
-        } else if (liquidityPercentage >= 25) {
-            return 'This campaign is providing a low percentage (25% or more) of the funds raised as liquidity.';
-        } else {
-            return 'This campaign is providing a very low percentage (less than 25%) of the funds raised as liquidity.';
-        }
+    function handleClick() {
+        showCustomToast('Campaign creation coming soon! Stay tuned for updates.', 3000, 'info');
     }
 
-    function getLiquidityBorderColor(campaign) {
-        const liquidityPercentage = parseFloat(campaign.liquidity_info);
-        if (liquidityPercentage >= 75) {
-            return 'border-green-500';
-        } else if (liquidityPercentage >= 50) {
-            return 'border-yellow-500';
-        } else if (liquidityPercentage >= 25) {
-            return 'border-orange-500';
-        } else {
-            return 'border-red-500';
-        }
-    }
-    async function handleContribution(event) {
-    const { amount, selectedAsset } = event.detail;
-    if (loading || !amount || !selectedAsset) return;
-    
-    loading = true;
-    try {
-        const network = activeTab;
-        let txId;
-
-        // Calculate the actual contribution and fee from the total amount
-        const totalAmount = new BigNumber(amount);
-        const feePercentage = new BigNumber(MEW_FEE_PERCENTAGE).dividedBy(100);
-        const campaignAmount = totalAmount.dividedBy(new BigNumber(1).plus(feePercentage));
-        const feeAmount = totalAmount.minus(campaignAmount);
-
-        if (network === 'ergo') {
-            const selectedWalletErgo = get(selected_wallet);
-            if (!isWalletErgo(selectedWalletErgo) || !isWalletConected()) {
-                showCustomToast('Please connect an Ergo wallet first.', 1500, 'info');
-                loading = false;
-                return;
-            }
-            txId = await handleErgoContribution(amount, selectedAsset);
-        } else {
-            const selectedWalletCardano = get(selected_wallet);
-            if (!isWalletCardano(selectedWalletCardano) || !isWalletConected()) {
-                showCustomToast('Please connect a Cardano wallet first.', 1500, 'info');
-                loading = false;
-                return;
-            }
-            txId = await handleCardanoContribution(amount, selectedAsset);
-        }
-
-        if (txId) {
-            showCustomToast(
-                `Transaction submitted successfully.<br>TX ID: <a target="_new" href="${
-                    network === 'ergo' 
-                        ? 'https://ergexplorer.com/transactions/' 
-                        : 'https://cardanoscan.io/transaction/'
-                }${txId}">${txId}</a>`, 
-                5000, 
-                'success'
-            );
-            
-            /*
-            showCustomToast(`
-                Contribution breakdown:<br>
-                Total Amount: ${nFormatter(totalAmount)} ${selectedAsset.name}<br>
-                To Campaign: ${nFormatter(amount)} ${selectedAsset.name} (100%)<br>
-                Platform Fee: ${nFormatter(feeAmount)} ${selectedAsset.name} (${MEW_FEE_PERCENTAGE}%)
-            `, 8000, 'info');
-            */
-
-            onContributeModalClose();
-            await updateBalances();
-        }
-    } catch (error) {
-        showCustomToast('Failed to process contribution. Please try again.', 5000, 'danger');
-    } finally {
-        loading = false;
-    }
-}
-    // UI helpers
     function onContributeModalClose() {
         showContributeModal = false;
         selectedCampaign = null;
     }
-// Also make sure this event handler is present:
-function handleTxSubmitted(event) {
-    const txId = event.detail;
-    if (txId) {
-        showCustomToast(
-            `Transaction submitted successfully.<br>TX ID: <a target="_new" href="https://ergexplorer.com/transactions/${txId}">${txId}</a>`, 
-            5000, 
-            'success'
-        );
-        
-        if (selectedCampaign) {
-            const feeAmount = new BigNumber(amount).multipliedBy(MEW_FEE_PERCENTAGE).dividedBy(100);
-            const campaignAmount = new BigNumber(amount).minus(feeAmount);
-            
-            showCustomToast(`
-                Contribution breakdown:<br>
-                To Campaign: ${nFormatter(campaignAmount)} ${selectedCampaign.base_name}<br>
-                Platform Fee (${MEW_FEE_PERCENTAGE}%): ${nFormatter(feeAmount)} ${selectedCampaign.base_name}
-            `, 8000, 'info');
-            
-            updateBalances();
-        }
-    }
-}
+
     // Lifecycle
     onMount(() => {
         fetchCampaigns();
         const interval = setInterval(updateBalances, 300000);
         return () => clearInterval(interval);
     });
-    
- function handleClick() {
-        showCustomToast('Campaign creation coming soon! Stay tuned for updates.', 3000, 'info');
+        // Add this helper function to format dates
+        function formatDateForCountdown(date) {
+        if (!date) return '';
+        const d = new Date(date);
+        return `${d.getDate().toString().padStart(2, '0')}-${
+            (d.getMonth() + 1).toString().padStart(2, '0')}-${
+            d.getFullYear()} ${
+            d.getHours().toString().padStart(2, '0')}:${
+            d.getMinutes().toString().padStart(2, '0')}:${
+            d.getSeconds().toString().padStart(2, '0')}`;
     }
-    function formatAddress(address, length = 8) {
-        if (!address) return '';
-        return `${address.slice(0, length)}...${address.slice(-length)}`;
+      function isCampaignLive(startDate) {
+        return new Date() >= new Date(startDate);
     }
 
-    function calculateProgress(contribution, targetAmount) {
-    if (!targetAmount || !contribution) return 0;
-    const basePercentage = (contribution / parseFloat(targetAmount)) * 100;
-    return Math.min(basePercentage, 100); // Ensure the progress doesn't exceed 100%
-}
 
-function formatProgress(percentage) {
-    if (percentage <= 100) return percentage.toFixed(2);
-    return `+${(percentage - 100).toFixed(2)}`;
-}
-    function getContributionAmount(campaign, tokenId) {
-    const ergoContribution = campaign.contributions?.find(c => c.asset === 'ERG');
-    if (ergoContribution) {
-        return ergoContribution.amount;
-    }
-    const contribution = campaign.contributions?.find(c => c.asset === tokenId);
-    return contribution ? contribution.amount : 0;
-}
-
-        // Add this to your existing script
-        let selectedStatus = 'active'; // Default filter
-    
-    function getFilteredCampaigns(campaigns) {
-        return campaigns.filter(c => 
-            c.network === activeTab && 
-            c.status_phase === selectedStatus
-        );
-    }
 </script>
+
+
 <CreateCampaignModal bind:showModal={showCreateModal} />
 <div class="container top-margin text-white mb-5">
     <div class="container mx-auto px-0 max-w-6xl">
         <div class="text-center mb-12">
             <h1 class="text-4xl font-bold text-white mb-4">Contribute</h1>
             <p class="text-gray-400 text-lg max-w-2xl mx-auto">Discover and participate in the latest blockchain projects across Ergo and Cardano networks.</p>
-            <button
-            class="px-4 py-2 bg-gray-600 text-gray-300 rounded-lg hover:bg-gray-500 transition-colors relative group cursor-not-allowed flex items-center gap-2"
-            on:click={handleClick}
-        >
-            <span>Create Campaign</span>
-            <span class="bg-yellow-500 text-xs px-2 py-0.5 rounded-full text-black font-medium">Soon</span>
-            <div class="absolute hidden group-hover:block w-48 px-2 py-1 bg-gray-800 text-sm text-gray-300 rounded-md -bottom-8 left-1/2 transform -translate-x-1/2 shadow-lg">
-                Coming soon!
-            </div>
-        </button>
         </div>
 
-        <!-- Network Tabs -->
-        <div class="flex justify-center space-x-4 mb-[50px]">
-            <button
-                class="px-8 py-2 rounded-lg font-medium transition-colors text-bg duration-200"
-                class:active-tab={activeTab === 'ergo'}
-                class:inactive-tab={activeTab !== 'ergo'}
-                on:click={() => activeTab = 'ergo'}
-            >
-                Ergo Campaigns
-            </button>
-            <button
-                class="px-8 py-2 rounded-lg font-medium text-bg duration-200"
-                class:active-tab={activeTab === 'cardano'}
-                class:inactive-tab={activeTab !== 'cardano'}
-                on:click={() => activeTab = 'cardano'}
-            >
-                Cardano Campaigns
-            </button>
-        </div>
     <!-- Add this after Network Tabs -->
 <div class="flex justify-center space-x-4 mb-8">
     <button
@@ -409,67 +393,18 @@ function formatProgress(percentage) {
         {#if campaign.status_phase === 'ended'}
             <!-- Ended Campaign Card -->
             <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
-                <!-- Header -->
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h2 class="text-2xl font-bold text-white mb-2">{campaign.title}</h2>
                         <p class="text-gray-400 text-sm">{campaign.description}</p>
                     </div>
-                    <div class="px-4 py-2 rounded-xl text-xs font-medium bg-red-500 text-white">
-                        Ended
-                    </div>
+                    <StatusBadge status="ended" />
                 </div>
+                <CampaignResults
+                campaign={campaign}
+            />
 
-                <!-- Campaign Results -->
-                <div class="success-campaign-box bg-gray-800 rounded-lg p-6 mb-6">
-                    <h3 class="text-xl font-semibold text-cyan-500 mb-4">Campaign Results</h3>
-                    
-                    <div class="space-y-4">
-                        {#each campaign.contributions || [] as contribution}
-                            <div class="flex justify-between items-center">
-                                <span class="text-gray-400">Total Raised:</span>
-                                <span class="text-white font-medium">{contribution.amount} 
-                                    {contribution.asset === campaign.base_token_id ? campaign.base_name : 'Token'}</span>
-                            </div>
-                        {/each}
-
-                        {#if campaign.lp_tokenid}
-                            <div>
-                                <div class="flex justify-between items-center mb-2">
-                                    <span class="text-gray-400">LP Token:</span>
-                                    <button 
-                                        class="flex items-center gap-2 px-3 py-1 rounded-lg bg-gray-700 hover:bg-gray-600 text-white text-sm"
-                                        on:click={() => navigator.clipboard.writeText(campaign.lp_tokenid)}
-                                    >
-                                        <span class="truncate max-w-[150px]">{campaign.lp_tokenid}</span>
-                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                        </svg>
-                                    </button>
-                                </div>
-                                
-                                <div class="grid grid-cols-2 gap-4 mt-4">
-                                    <div class="p-3 rounded-lg bg-gray-700">
-                                        <div class="text-gray-400 text-sm mb-1">Total LP Share</div>
-                                        <div class="text-white font-medium">{campaign.total_lp_share.toLocaleString()}</div>
-                                    </div>
-                                    <div class="p-3 rounded-lg bg-gray-700">
-                                        <div class="text-gray-400 text-sm mb-1">LP Fee</div>
-                                        <div class="text-white font-medium">{campaign.lp_fee}%</div>
-                                    </div>
-                                </div>
-                            </div>
-                        {/if}
-                    </div>
-                </div>
-
-                <button
-                    class="w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg opacity-50 cursor-not-allowed"
-                    disabled
-                >
-                    Campaign Ended
-                </button>
+              
             </div>
 
         {:else if campaign.campaign_type === 'mintpluslp'}
@@ -479,459 +414,274 @@ function formatProgress(percentage) {
                     <div>
                         <div class="flex items-center gap-3 mb-2">
                             <h2 class="text-2xl font-bold text-white">{campaign.title}</h2>
-                            <span class="px-3 py-1 rounded-lg text-xs font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-500/20">
-                                Token Mint + LP
-                            </span>
+                            <CampaignTypeTag type="mintpluslp" />
                         </div>
                         <p class="text-gray-400 text-sm">{campaign.description}</p>
                     </div>
-                    <div class="px-4 py-2 rounded-xl text-xs font-medium text-white
-                                {campaign.status_phase === 'active' ? 'bg-green-500' : 'bg-yellow-500'}">
-                        {campaign.status_phase}
-                    </div>
+                    <StatusBadge status={getCampaignStatus(campaign)} />
                 </div>
 
-                <!-- Progress Section -->
-                <div class="p-4 rounded-lg bg-gray-700 border-l-4 border-purple-500">
-                <div class="mb-6">
-                    <div class="flex justify-between items-center mb-2">
-                        <div class="text-gray-400 text-sm">Progress</div>
-                        <div class="text-white text-sm font-medium">
-                            {calculateProgress(
-                                getContributionAmount(campaign, campaign.base_token_id),
-                                campaign.base_target_amount
-                            ).toFixed(2)}%
-                        </div>
-                    </div>
-                    <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
-                        <div 
-                            class="bg-cyan-500 rounded-full h-2 transition-all duration-500" 
-                            style="width: {calculateProgress(
-                                getContributionAmount(campaign, campaign.base_token_id),
-                                campaign.base_target_amount
-                            )}%"
-                        />
-                    </div>
-                    <div class="flex justify-between text-sm">
-                        <div class="text-gray-400">
-                            Raised: {getContributionAmount(campaign, campaign.base_token_id)} {campaign.base_name}
-                        </div>
-                        <div class="text-gray-400">
-                            Min Target: {campaign.base_target_amount.toLocaleString()} {campaign.base_name}
-                        </div>
-                    </div>
-                </div>
-            </div>
-                <!-- Campaign Details -->
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">Supply</div>
-                        <div class="text-white font-medium">
-                            {#if campaign.total_supply}
-                                {campaign.total_supply.toLocaleString()}
-                            {/if}
-                        </div>
-                    </div>
-                    {#if campaign.initial_price}
-                        <div class="p-3 rounded-lg bg-gray-700">
-                            <div class="text-gray-400 text-sm mb-1">Initial Price</div>
-                            <div class="text-white font-medium">{campaign.initial_price} {campaign.base_name}</div>
-                        </div>
-                    {/if}
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">Min Contribution</div>
-                        <div class="text-white font-medium">{nFormatter(campaign.min_contribution)} {campaign.base_name}</div>
-                    </div>
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">Max Contribution</div>
-                        <div class="text-white font-medium">{nFormatter(campaign.max_contribution)} {campaign.base_name}</div>
-                    </div>
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">LP Fee</div>
-                        <div class="text-white font-medium">{campaign.lp_fee}%</div>
-                    </div>
-                </div>
-                <!-- Social Links for mintpluslp -->
-                {#if campaign.website || campaign.telegram || campaign.twitter || campaign.discord}
-                    <div class="flex justify-center space-x-6 mb-6">
-                        {#if campaign.website}
-                            <a href={campaign.website} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-cyan-500 transition-colors">
-                                <Globe size={20} />
-                            </a>
-                        {/if}
-                        {#if campaign.telegram}
-                            <a href={campaign.telegram} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-cyan-500 transition-colors">
-                                <MessageCircle size={20} />
-                            </a>
-                        {/if}
-                        {#if campaign.twitter}
-                            <a href={campaign.twitter} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-cyan-500 transition-colors">
-                                <Twitter size={20} />
-                            </a>
-                        {/if}
-                        {#if campaign.discord}
-                            <a href={campaign.discord} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-cyan-500 transition-colors">
-                                <MessagesSquare size={20} />
-                            </a>
-                        {/if}
-                    </div>
-                {/if}
+    <ProgressBar
+        currentAmount={getContributionAmount(campaign, campaign.base_token_id)}
+        targetAmount={campaign.base_target_amount}
+        tokenName={campaign.base_name}
+        accentColor="cyan"
+    />
 
-                <!-- Action Button for mintpluslp -->
-                <button
-                    class="w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg 
-                           transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    on:click={() => {
-                        if (campaign.status_phase === 'active') {
+
+                <CountdownTimer
+                endDate={campaign.end_date}
+                startDate={campaign.start_date}
+                status={getCampaignStatus(campaign)}
+            />
+                <CampaignStats 
+                    stats={[
+                        { 
+                            label: 'Supply', 
+                            value: campaign.total_supply, 
+                            format: 'number' 
+                        },
+                        { 
+                            label: 'Initial Price', 
+                            value: campaign.initial_price, 
+                            suffix: campaign.base_name 
+                        },
+                        { 
+                            label: 'Min Contribution', 
+                            value: campaign.min_contribution, 
+                            format: 'number', 
+                            suffix: campaign.base_name 
+                        },
+                        { 
+                            label: 'Max Contribution', 
+                            value: campaign.max_contribution, 
+                            format: 'number', 
+                            suffix: campaign.base_name 
+                        },
+                        { 
+                            label: 'LP Fee', 
+                            value: campaign.lp_fee, 
+                            format: 'percentage' 
+                        }
+                    ]}
+                />
+
+                <SocialLinks 
+                    socials={{
+                        website: campaign.website,
+                        telegram: campaign.telegram,
+                        twitter: campaign.twitter,
+                        discord: campaign.discord
+                    }}
+                    accentColor="cyan"
+                />
+
+                <CampaignButton 
+                    status={getCampaignStatus(campaign)}
+                    startDate={campaign.start_date}
+                    onClick={() => {
+                        if (getCampaignStatus(campaign) === 'active') {
                             selectedCampaign = campaign;
                             showContributeModal = true;
                         }
                     }}
-                    disabled={campaign.status_phase !== 'active'}
-                >
-                    {#if campaign.status_phase === 'active'}
-                        Contribute
-                    {:else}
-                        Coming Soon
-                    {/if}
-                </button>
+                    loading={loading}
+                />
             </div>
 
         {:else if campaign.campaign_type === 'multiassetlp'}
             <!-- Multi-Asset LP Campaign Card -->
             <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
-                <!-- Header -->
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <div class="flex items-center gap-3 mb-2">
                             <h2 class="text-2xl font-bold text-white">{campaign.title}</h2>
-                            <span class="px-3 py-1 rounded-lg text-xs font-medium bg-purple-500/20 text-purple-400 border border-purple-500/20">
-                                Multi-Asset LP
-                            </span>
+                            <CampaignTypeTag type="multiassetlp" />
                         </div>
                         <p class="text-gray-400 text-sm">{campaign.description}</p>
                     </div>
-                    <div class="px-4 py-2 rounded-xl text-xs font-medium text-white
-                                {campaign.status_phase === 'active' ? 'bg-green-500' : 'bg-yellow-500'}">
-                        {campaign.status_phase}
-                    </div>
+                    <StatusBadge status={getCampaignStatus(campaign)} />
                 </div>
 
-                <!-- Multi-Asset Progress Section -->
-<div class="grid grid-cols-2 gap-4 mb-6">
-    <!-- First Asset -->
-    <div class="p-4 rounded-lg bg-gray-700 border-l-4 border-cyan-500">
-        <div class="flex items-center gap-2 mb-3">
-            {#if campaign.base_icon_url}
-                <img src={campaign.base_icon_url} alt={campaign.base_name} class="w-6 h-6 rounded-full"/>
-            {/if}
-            <span class="text-white font-medium">{campaign.base_name}</span>
-           
-        </div>
-        <div class="space-y-2">
-            <div class="flex justify-between">
-                <span class="text-gray-400 text-sm">Progress:</span>
-                <span class="text-white">
-                    {calculateProgress(
-                        getContributionAmount(campaign, campaign.base_token_id),
-                        campaign.base_target_amount
-                    ).toFixed(1)}%
-                </span>
-            </div>
-            <div class="w-full bg-gray-800 rounded-full h-2">
-                <div 
-                    class="bg-cyan-500 rounded-full h-2 transition-all duration-500" 
-                    style="width: {calculateProgress(
-                        getContributionAmount(campaign, campaign.base_token_id),
-                        campaign.base_target_amount
-                    )}%"
-                />
-            </div>
-            <div class="flex justify-between text-sm">
-                <span class="text-gray-400">
-                    Raised: {getContributionAmount(campaign, campaign.base_token_id)} 
-                </span>
-                <span class="text-gray-400">
-                    Target: {campaign.base_target_amount.toLocaleString()} 
-                </span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Second Asset -->
-    {#if campaign.token_target_amount}
-        <div class="p-4 rounded-lg bg-gray-700 border-l-4 border-purple-500">
-            <div class="flex items-center gap-2 mb-3">
-                {#if campaign.token_icon_url}
-                    <img src={campaign.token_icon_url} alt={campaign.token_name} class="w-6 h-6 rounded-full"/>
-                {/if}
-                <span class="text-white font-medium">{campaign.token_name}</span>
-              
-            </div>
-            <div class="space-y-2">
-                <div class="flex justify-between">
-                    <span class="text-gray-400 text-sm">Progress:</span>
-                    <span class="text-white">
-                        {calculateProgress(
-                            getContributionAmount(campaign, campaign.token_policy_id),
-                            campaign.token_target_amount
-                        ).toFixed(1)}%
-                    </span>
-                </div>
-                <div class="w-full bg-gray-800 rounded-full h-2">
-                    <div 
-                        class="bg-purple-500 rounded-full h-2 transition-all duration-500" 
-                        style="width: {calculateProgress(
-                            getContributionAmount(campaign, campaign.token_policy_id),
-                            campaign.token_target_amount
-                        )}%"
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <AssetInfo 
+                        asset={{
+                            name: campaign.base_name,
+                            iconUrl: campaign.base_icon_url,
+                            currentAmount: getContributionAmount(campaign, campaign.base_token_id),
+                            targetAmount: campaign.base_target_amount,
+                            progress: calculateProgress(
+                                getContributionAmount(campaign, campaign.base_token_id),
+                                campaign.base_target_amount
+                            )
+                        }}
+                        accentColor="cyan"
                     />
+
+                    {#if campaign.token_target_amount}
+                        <AssetInfo 
+                            asset={{
+                                name: campaign.token_name,
+                                iconUrl: campaign.token_icon_url,
+                                currentAmount: getContributionAmount(campaign, campaign.token_policy_id),
+                                targetAmount: campaign.token_target_amount,
+                                progress: calculateProgress(
+                                    getContributionAmount(campaign, campaign.token_policy_id),
+                                    campaign.token_target_amount
+                                )
+                            }}
+                            accentColor="purple"
+                        />
+                    {/if}
                 </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-400">
-                        Raised: {getContributionAmount(campaign, campaign.token_policy_id)} 
-                    </span>
-                    <span class="text-gray-400">
-                        Target: {campaign.token_target_amount.toLocaleString()} 
-                    </span>
-                </div>
-            </div>
-        </div>
-    {/if}
-</div>
 
-                <!-- Campaign Details for multiassetlp -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-    <!-- First Token Min/Max -->
-    <div class="p-3 rounded-lg">
-        <div class="text-gray-400 text-sm mb-1">Min {campaign.base_name}</div>
-        <div class="text-white font-medium">{nFormatter(campaign.min_contribution)}</div>
-    </div>
-    <div class="p-3 rounded-lg">
-        <div class="text-gray-400 text-sm mb-1">Max {campaign.base_name}</div>
-        <div class="text-white font-medium">{nFormatter(campaign.max_contribution)}</div>
-    </div>
+                <CountdownTimer
+    endDate={campaign.end_date}
+    startDate={campaign.start_date}
+    status={getCampaignStatus(campaign)}
+/>
 
-    <!-- Second Token Min/Max -->
-    <div class="p-3 rounded-lg">
-        <div class="text-gray-400 text-sm mb-1">Min {campaign.token_name}</div>
-        <div class="text-white font-medium">{nFormatter(campaign.token_min_contribution)}</div>
-    </div>
-    <div class="p-3 rounded-lg">
-        <div class="text-gray-400 text-sm mb-1">Max {campaign.token_name}</div>
-        <div class="text-white font-medium">{nFormatter(campaign.token_max_contribution)}</div>
-    </div>
+                <CampaignStats 
+                    stats={[
+                        { 
+                            label: `Min ${campaign.base_name}`, 
+                            value: campaign.min_contribution, 
+                            format: 'number' 
+                        },
+                        { 
+                            label: `Max ${campaign.base_name}`, 
+                            value: campaign.max_contribution, 
+                            format: 'number' 
+                        },
+                        { 
+                            label: `Min ${campaign.token_name}`, 
+                            value: campaign.min_token, 
+                            format: 'number' 
+                        },
+                        { 
+                            label: `Max ${campaign.token_name}`, 
+                            value: campaign.max_token, 
+                            format: 'number' 
+                        },
+                        { 
+                            label: 'LP Fee', 
+                            value: campaign.lp_fee, 
+                            format: 'percentage',
+                            fullWidth: true 
+                        }
+                    ]}
+                    columns={4}
+                />
 
-    <!-- LP Fee spanning full width -->
-    <div class="p-3 rounded-lg col-span-full" >
-        <div class="text-gray-400 text-sm mb-1">LP Fee</div>
-        <div class="text-white font-medium">{campaign.lp_fee}%</div>
-    </div>
-</div>
-               
-                <!-- Social Links -->
-                {#if campaign.website || campaign.telegram || campaign.twitter || campaign.discord}
-                    <div class="flex justify-center space-x-6 mb-6">
-                        {#if campaign.website}
-                            <a href={campaign.website} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-purple-500 transition-colors">
-                                <Globe size={20} />
-                            </a>
-                        {/if}
-                        {#if campaign.telegram}
-                            <a href={campaign.telegram} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-purple-500 transition-colors">
-                                <MessageCircle size={20} />
-                            </a>
-                        {/if}
-                        {#if campaign.twitter}
-                            <a href={campaign.twitter} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-purple-500 transition-colors">
-                                <Twitter size={20} />
-                            </a>
-                        {/if}
-                        {#if campaign.discord}
-                            <a href={campaign.discord} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-purple-500 transition-colors">
-                                <MessagesSquare size={20} />
-                            </a>
-                        {/if}
-                    </div>
-                {/if}
+                <SocialLinks 
+                    socials={{
+                        website: campaign.website,
+                        telegram: campaign.telegram,
+                        twitter: campaign.twitter,
+                        discord: campaign.discord
+                    }}
+                    accentColor="purple"
+                />
 
-                <!-- Action Button -->
-                <button
-                    class="w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg 
-                           transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    on:click={() => {
-                        if (campaign.status_phase === 'active') {
+                <CampaignButton 
+                    status={getCampaignStatus(campaign)}
+                    startDate={campaign.start_date}
+                    onClick={() => {
+                        if (getCampaignStatus(campaign) === 'active') {
                             selectedCampaign = campaign;
                             showContributeModal = true;
                         }
                     }}
-                    disabled={campaign.status_phase !== 'active'}
-                >
-                    {#if campaign.status_phase === 'active'}
-                        Contribute
-                    {:else}
-                        Coming Soon
-                    {/if}
-                </button>
+                    loading={loading}
+                />
             </div>
 
         {:else}
             <!-- Crowdfund Campaign Card -->
             <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
-                <!-- Header -->
                 <div class="flex justify-between items-start mb-4">
                     <div class="flex-1">
                         <div class="flex items-center gap-3 mb-2">
                             <h2 class="text-2xl font-bold text-white">{campaign.title}</h2>
-                            <span class="px-3 py-1 rounded-lg text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/20">
-                                Crowdfund
-                            </span>
+                            <CampaignTypeTag type="crowdfund" />
                         </div>
                         <p class="text-gray-400 text-sm">{campaign.description}</p>
                     </div>
-                    <div class="px-4 py-2 rounded-xl text-xs font-medium text-white
-                              {campaign.status_phase === 'active' ? 'bg-green-500' : 'bg-yellow-500'}">
-                        {campaign.status_phase}
-                    </div>
+                    <StatusBadge status={getCampaignStatus(campaign)} />
                 </div>
 
-                <!-- Token Information -->
-                <div class="mb-6">
-                    <div class="p-4 rounded-lg bg-gray-700 border-l-4 border-blue-500">
-                        <div class="flex items-center gap-2 mb-3">
-                            {#if campaign.base_icon_url}
-                                <img src={campaign.base_icon_url} alt={campaign.base_name} class="w-6 h-6 rounded-full"/>
-                            {/if}
-                            <span class="text-white font-medium">{campaign.base_name}</span>
-                            <span class="text-gray-400 text-sm">({formatAddress(campaign.base_token_id, 6)})</span>
-                        </div>
-                        
-                        <!-- Progress Bar -->
-                        <div class="space-y-2">
-                            <div class="flex justify-between items-center mb-2">
-                                <div class="text-gray-400 text-sm">Progress</div>
-                                <div class="text-white text-sm font-medium">
-                                    {calculateProgress(
-                                        getContributionAmount(campaign, campaign.base_token_id),
-                                        campaign.base_target_amount
-                                    ).toFixed(2)}%
-                                </div>
-                            </div>
-                            <div class="w-full bg-gray-800 rounded-full h-2 mb-2">
-                                <div 
-                                    class="bg-blue-500 rounded-full h-2 transition-all duration-500" style="width: {calculateProgress(
-                                        getContributionAmount(campaign, campaign.base_token_id),
-                                        campaign.base_target_amount
-                                    )}%"
-                                />
-                            </div>
-                            <div class="flex justify-between text-sm">
-                                <div class="text-gray-400">
-                                    Raised: {getContributionAmount(campaign, campaign.base_token_id)} {campaign.base_name}
-                                </div>
-                                <div class="text-gray-400">
-                                    Target: {campaign.base_target_amount.toLocaleString()} {campaign.base_name}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <AssetInfo 
+                    asset={{
+                        name: campaign.base_name,
+                        iconUrl: campaign.base_icon_url,
+                        tokenId: campaign.base_token_id,
+                        currentAmount: getContributionAmount(campaign, campaign.base_token_id),
+                        targetAmount: campaign.base_target_amount,
+                        progress: calculateProgress(
+                            getContributionAmount(campaign, campaign.base_token_id),
+                            campaign.base_target_amount
+                        )
+                    }}
+                    showTokenId={true}
+                    accentColor="blue"
+                />
 
-                <!-- Campaign Details -->
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">Min Contribution</div>
-                        <div class="text-white font-medium">{nFormatter(campaign.min_contribution)} {campaign.base_name}</div>
-                    </div>
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">Max Contribution</div>
-                        <div class="text-white font-medium">{nFormatter(campaign.max_contribution)} {campaign.base_name}</div>
-                    </div>
-                    <div class="p-3 rounded-lg bg-gray-700">
-                        <div class="text-gray-400 text-sm mb-1">Platform Fee</div>
-                        <div class="text-white font-medium">{MEW_FEE_PERCENTAGE}%</div>
-                    </div>
-                </div>
+                <CountdownTimer
+    endDate={campaign.end_date}
+    startDate={campaign.start_date}
+    status={getCampaignStatus(campaign)}
+/>
 
-                <!-- Crowdfunder Address -->
+                <CampaignStats 
+                    stats={[
+                        { 
+                            label: 'Min Contribution', 
+                            value: campaign.min_contribution, 
+                            format: 'number',
+                            suffix: campaign.base_name 
+                        },
+                        { 
+                            label: 'Max Contribution', 
+                            value: campaign.max_contribution, 
+                            format: 'number',
+                            suffix: campaign.base_name 
+                        },
+                        { 
+                            label: 'Platform Fee', 
+                            value: MEW_FEE_PERCENTAGE, 
+                            format: 'percentage' 
+                        }
+                    ]}
+                />
+
                 {#if campaign.recipient_address}
-                    <div class="p-3 rounded-lg bg-gray-700 mb-6">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-400 text-sm">Crowdfunder:</span>
-                            <div class="flex items-center gap-2">
-                                <span class="text-white text-sm">{formatAddress(campaign.recipient_address)}</span>
-                                <button 
-                                    class="p-1 rounded hover:bg-gray-600 transition-colors"
-                                    on:click={() => {
-                                        navigator.clipboard.writeText(campaign.recipient_address);
-                                        showCustomToast('Address copied', 2000, 'success');
-                                    }}
-                                >
-                                    <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <CopyableAddress
+                        label="Crowdfunder"
+                        address={campaign.recipient_address}
+                    />
                 {/if}
 
-                <!-- Social Links -->
-                {#if campaign.website || campaign.telegram || campaign.twitter || campaign.discord}
-                    <div class="flex justify-center space-x-6 mb-6">
-                        {#if campaign.website}
-                            <a href={campaign.website} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-blue-500 transition-colors">
-                                <Globe size={20} />
-                            </a>
-                        {/if}
-                        {#if campaign.telegram}
-                            <a href={campaign.telegram} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-blue-500 transition-colors">
-                                <MessageCircle size={20} />
-                            </a>
-                        {/if}
-                        {#if campaign.twitter}
-                            <a href={campaign.twitter} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-blue-500 transition-colors">
-                                <Twitter size={20} />
-                            </a>
-                        {/if}
-                        {#if campaign.discord}
-                            <a href={campaign.discord} target="_blank" rel="noopener noreferrer" 
-                               class="text-gray-400 hover:text-blue-500 transition-colors">
-                                <MessagesSquare size={20} />
-                            </a>
-                        {/if}
-                    </div>
-                {/if}
+                <SocialLinks 
+                    socials={{
+                        website: campaign.website,
+                        telegram: campaign.telegram,
+                        twitter: campaign.twitter,
+                        discord: campaign.discord
+                    }}
+                    accentColor="blue"
+                />
 
-                <!-- Action Button -->
-                <button
-                    class="w-full py-3 px-4 btn btn-primary text-black font-medium rounded-lg 
-                           transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    on:click={() => {
-                        if (campaign.status_phase === 'active') {
+                <CampaignButton 
+                    status={getCampaignStatus(campaign)}
+                    startDate={campaign.start_date}
+                    onClick={() => {
+                        if (getCampaignStatus(campaign) === 'active') {
                             selectedCampaign = campaign;
                             showContributeModal = true;
                         }
                     }}
-                    disabled={campaign.status_phase !== 'active'}
-                >
-                    {#if campaign.status_phase === 'active'}
-                        Contribute
-                    {:else}
-                        Coming Soon
-                    {/if}
-                </button>
+                    loading={loading}
+                />
             </div>
         {/if}
     {/each}
@@ -966,14 +716,13 @@ function formatProgress(percentage) {
 
 <style>
     .campaign-card {
-    background-color: var(--forms-bg);
-    display: flex;
-    flex-direction: column;
-    place-content: space-between;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: 2px solid var(--info-color); /* Add border using --info-color */
-}
-
+        background-color: var(--forms-bg);
+        display: flex;
+        flex-direction: column;
+        place-content: space-between;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 2px solid var(--main-color);
+    }
 
     .campaign-card:hover {
         transform: translateY(-2px);
@@ -989,10 +738,6 @@ function formatProgress(percentage) {
         background-color: var(--forms-bg);
         color: rgb(209 213 219) !important;
     }
-    .p-3 {
-        background-color: var(--footer);
-        color: rgb(209 213 219) !important;
-    }
 
     .inactive-tab:hover {
         background-color: var(--main-color);
@@ -1002,6 +747,7 @@ function formatProgress(percentage) {
     :global(.campaign-card) {
         background-color: var(--forms-bg);
     }
+
     .active-status {
         background-color: var(--main-color);
         color: white;
@@ -1015,45 +761,5 @@ function formatProgress(percentage) {
     .inactive-status:hover {
         background-color: var(--main-color);
         color: var(--background);
-    }
-    .success-campaign-box {
-        background-color: #211b2b;
-        border: 1px solid rgb(6 182 212 / 0.2);
-        box-shadow: 0 0 10px rgba(6, 182, 212, 0.1);
-    }
-
-    .bg-green-500 {
-        background-color: rgb(34 197 94);
-    }
-
-    .bg-yellow-500 {
-        background-color: rgb(234 179 8);
-    }
-
-    .bg-red-500 {
-        background-color: rgb(239 68 68);
-    }
-
-    .bg-cyan-500 {
-        background-color: rgb(6 182 212);
-    }
-
-    .text-cyan-500 {
-        color: rgb(6 182 212);
-    }
-
-    button:not(:disabled) {
-        transition: all 0.3s ease;
-    }
-
-    button:not(:disabled):hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
-    }
-
-    /* Social icons hover animation */
-    a:hover svg {
-        transform: scale(1.1);
-        transition: transform 0.2s ease;
     }
 </style>
