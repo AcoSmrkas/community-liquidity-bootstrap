@@ -708,7 +708,6 @@
         bind:showErgopayModal 
         bind:isAuth
         bind:unsignedTx
-        on:txSubmitted={handleTxSubmitted}
     >
         <button slot="btn">Close</button>
     </ErgopayModal>
