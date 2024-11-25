@@ -6,7 +6,7 @@
     import { sendCardanoTx } from "$lib/contract/sendCardanoTx.ts";
     import ErgopayModal from '$lib/components/common/ErgopayModal.svelte';
     import ContributeModal from './ContributeModal.svelte';
-    import CountdownTimer from './countdown.svelte';
+    import CountdownTimer from './Countdown.svelte';
     import CampaignButton from './button.svelte';
     import StatusBadge from './StatusBadge.svelte';
     import ProgressBar from './ProgressBar.svelte';
