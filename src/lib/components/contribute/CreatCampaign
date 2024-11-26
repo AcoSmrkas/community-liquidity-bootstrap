@@ -1,0 +1,496 @@
+<script>
+    import { onMount } from 'svelte';
+    import { Globe, MessageCircle, Twitter, MessagesSquare } from 'lucide-svelte';
+    import { selected_wallet, connected_wallet_address } from "$lib/store/store.ts";
+    import { showCustomToast, isWalletConected } from '$lib/utils/utils.js';
+    import { fetchBoxes, getBlockHeight } from '$lib/api-explorer/explorer.ts';
+    import axios from "axios";
+    import { API_HOST } from '$lib/common/const.js';
+
+    let ergoPrice = 0;
+    let currentStep = 1;
+    const totalSteps = 4;
+
+    let campaignTypes = [
+        { value: 'mintpluslp', label: 'Token Mint + LP' },
+        { value: 'crowdfund', label: 'Crowdfund' },
+        { value: 'multiassetlp', label: 'Multi Asset LP' }
+    ];
+
+    let campaignData = {
+        title: "",
+        description: "",
+        recipient_address: "",
+        end_date: "",
+        mint_new_token: true,
+        total_supply: 0,
+        initial_price: 0,
+        target_raise: 0,
+        min_contribution: 0,
+        max_contribution: 0,
+        liquidity_info: "100%",
+        liquidity_lock_period: "",
+        vesting_schedule: "",
+        status_phase: "upcoming",
+        whitelist_required: false,
+        kyc_required: false,
+        base_name: "ERG",
+        base_token_id: null,
+        base_icon_url: "",
+        base_target_amount: 0,
+        base_decimals: 9,
+        token_name: "",
+        token_policy_id: "",
+        token_icon_url: "",
+        token_target_amount: 0,
+        token_decimals: 0,
+        website: "",
+        whitepaper: "",
+        telegram: "",
+        twitter: "",
+        discord: "",
+        token_description: "",
+        lp_fee: "1.0",
+        campaign_type: "mintpluslp",
+    };
+
+    onMount(async () => {
+        try {
+            const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=ergo&vs_currencies=usd');
+            ergoPrice = response.data.ergo.usd;
+        } catch (error) {
+            console.error('Failed to fetch ERG price:', error);
+        }
+    });
+
+    async function handleSubmit() {
+        if (!isWalletConected()) {
+            showCustomToast('Please connect your wallet first', 3000, 'warning');
+            return;
+        }
+
+        try {
+            const ergAmount = 10 / ergoPrice;
+            const paymentTxId = await handlePayment(ergAmount);
+            
+            if (!paymentTxId) {
+                showCustomToast('Payment failed', 3000, 'error');
+                return;
+            }
+
+            const response = await axios.post(`${API_HOST}/mew/fund/createCampaign`, {
+                ...campaignData,
+                payment_tx_id: paymentTxId
+            });
+
+            if (response.data.success) {
+                showCustomToast('Campaign created successfully', 3000, 'success');
+                window.location.href = '/campaigns';
+            }
+        } catch (error) {
+            showCustomToast('Failed to create campaign', 3000, 'error');
+            console.error('Campaign creation error:', error);
+        }
+    }
+
+    async function handlePayment(ergAmount) {
+        // Add your payment handling logic here
+        return null;
+    }
+
+    function nextStep() {
+        if (currentStep < totalSteps) currentStep++;
+    }
+
+    function previousStep() {
+        if (currentStep > 1) currentStep--;
+    }
+
+    const steps = [
+        { number: 1, title: 'Basic Information', description: 'Set up your campaign fundamentals' },
+        { number: 2, title: 'Token Configuration', description: 'Configure your token details' },
+        { number: 3, title: 'Campaign Settings', description: 'Set your campaign parameters' },
+        { number: 4, title: 'Social & Links', description: 'Add your social media and important links' }
+    ];
+</script>
+
+<div class="min-h-screen bg-gray-900 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-white mb-2">Create New Campaign</h1>
+            <p class="text-gray-400">Launch your project on the Ergo blockchain</p>
+        </div>
+
+        <!-- Steps Progress -->
+        <div class="mb-8">
+            <div class="flex justify-between mb-4">
+                {#each steps as step}
+                    <div class="flex-1 {step.number !== steps.length ? 'relative' : ''}">
+                        <div class="flex items-center">
+                            <div class="flex items-center relative">
+                                <div class="rounded-full transition duration-500 ease-in-out h-12 w-12 py-3 border-2 
+                                    {currentStep === step.number ? 'border-cyan-500 bg-cyan-500' : 
+                                     currentStep > step.number ? 'border-green-500 bg-green-500' : 
+                                     'border-gray-700 bg-gray-800'}">
+                                    <div class="flex justify-center">
+                                        {#if currentStep > step.number}
+                                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                        {:else}
+                                            <span class="text-white font-bold">{step.number}</span>
+                                        {/if}
+                                    </div>
+                                </div>
+                                <div class="absolute top-0 -ml-10 text-center mt-16 w-32 text-sm font-medium text-white">
+                                    <div class="font-semibold">{step.title}</div>
+                                    <div class="text-gray-400 text-xs mt-1">{step.description}</div>
+                                </div>
+                            </div>
+                            {#if step.number !== steps.length}
+                                <div class="flex-auto border-t-2 transition duration-500 ease-in-out 
+                                    {currentStep > step.number ? 'border-green-500' : 'border-gray-700'}">
+                                </div>
+                            {/if}
+                        </div>
+                    </div>
+                {/each}
+            </div>
+        </div>
+
+        <!-- Form Container -->
+        <div class="bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
+            <!-- Step 1: Basic Information -->
+            {#if currentStep === 1}
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Campaign Type</label>
+                        <select 
+                            bind:value={campaignData.campaign_type}
+                            class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                        >
+                            {#each campaignTypes as type}
+                                <option value={type.value}>{type.label}</option>
+                            {/each}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Campaign Title</label>
+                        <input 
+                            type="text" 
+                            bind:value={campaignData.title}
+                            class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            placeholder="Enter your campaign title"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Description</label>
+                        <textarea 
+                            bind:value={campaignData.description}
+                            class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                            rows="4"
+                            placeholder="Describe your campaign"
+                        ></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-2">End Date</label>
+                        <input 
+                            type="date" 
+                            bind:value={campaignData.end_date}
+                            class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                        />
+                    </div>
+                </div>
+
+            <!-- Step 2: Token Configuration -->
+            {:else if currentStep === 2}
+                <div class="space-y-6">
+                    {#if campaignData.campaign_type === 'mintpluslp'}
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Token Name</label>
+                                <input 
+                                    type="text" 
+                                    bind:value={campaignData.token_name}
+                                    class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                    placeholder="Token Name"
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Token Decimals</label>
+                                <input 
+                                    type="number" 
+                                    bind:value={campaignData.token_decimals}
+                                    class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                    placeholder="Decimals"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Total Supply</label>
+                            <input 
+                                type="number" 
+                                bind:value={campaignData.total_supply}
+                                class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                placeholder="Total token supply"
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Token Description</label>
+                            <textarea 
+                                bind:value={campaignData.token_description}
+                                class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                rows="4"
+                                placeholder="Describe your token"
+                            ></textarea>
+                        </div>
+                    {:else}
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Base Token ID</label>
+                                <input 
+                                    type="text" 
+                                    bind:value={campaignData.base_token_id}
+                                    class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                    placeholder="Base Token ID"
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-2">Base Token Name</label>
+                                <input 
+                                    type="text" 
+                                    bind:value={campaignData.base_name}
+                                    class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                    placeholder="Base Token Name"
+                                />
+                            </div>
+                        </div>
+                    {/if}
+                </div>
+
+            <!-- Step 3: Campaign Configuration -->
+            {:else if currentStep === 3}
+                <div class="space-y-6">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Target Raise (ERG)</label>
+                            <input 
+                                type="number" 
+                                bind:value={campaignData.target_raise}
+                                class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                placeholder="Target amount"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">LP Fee (%)</label>
+                            <input 
+                                type="number" 
+                                bind:value={campaignData.lp_fee}
+                                class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                placeholder="LP Fee"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Min Contribution</label>
+                            <input 
+                                type="number" 
+                                bind:value={campaignData.min_contribution}
+                                class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                placeholder="Minimum"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Max Contribution</label>
+                            <input 
+                                type="number" 
+                                bind:value={campaignData.max_contribution}
+                                class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                placeholder="Maximum"
+                            />
+                            </div>
+                    </div>
+
+                    <div class="flex gap-6">
+                        <div class="flex-1 p-4 bg-gray-700 rounded-lg border border-gray-600">
+                            <div class="flex items-center mb-2">
+                                <input 
+                                    type="checkbox" 
+                                    bind:checked={campaignData.whitelist_required}
+                                    class="w-4 h-4 rounded border-gray-500 text-cyan-500 focus:ring-cyan-500 bg-gray-600"
+                                />
+                                <label class="ml-2 text-sm font-medium text-gray-300">Whitelist Required</label>
+                            </div>
+                            <p class="text-xs text-gray-400">Enable whitelist to restrict participation to approved addresses only</p>
+                        </div>
+
+                        <div class="flex-1 p-4 bg-gray-700 rounded-lg border border-gray-600">
+                            <div class="flex items-center mb-2">
+                                <input 
+                                    type="checkbox" 
+                                    bind:checked={campaignData.kyc_required}
+                                    class="w-4 h-4 rounded border-gray-500 text-cyan-500 focus:ring-cyan-500 bg-gray-600"
+                                />
+                                <label class="ml-2 text-sm font-medium text-gray-300">KYC Required</label>
+                            </div>
+                            <p class="text-xs text-gray-400">Enable KYC verification requirement for participants</p>
+                        </div>
+                    </div>
+                </div>
+
+            <!-- Step 4: Social Links -->
+            {:else if currentStep === 4}
+                <div class="space-y-6">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                <Globe class="inline-block w-4 h-4 mr-1" /> Website
+                            </label>
+                            <input 
+                                type="url" 
+                                bind:value={campaignData.website}
+                                class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                placeholder="https://your-website.com"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                <svg class="inline-block w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 8H7V9h10v2z"/>
+                                </svg>
+                                Whitepaper
+                            </label>
+                            <input 
+                                type="url" 
+                                bind:value={campaignData.whitepaper}
+                                class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                placeholder="Link to your whitepaper"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                <MessageCircle class="inline-block w-4 h-4 mr-1" /> Telegram
+                            </label>
+                            <input 
+                                type="url" 
+                                bind:value={campaignData.telegram}
+                                class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                placeholder="Telegram group link"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                <Twitter class="inline-block w-4 h-4 mr-1" /> Twitter
+                            </label>
+                            <input 
+                                type="url" 
+                                bind:value={campaignData.twitter}
+                                class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                placeholder="Twitter profile URL"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">
+                                <MessagesSquare class="inline-block w-4 h-4 mr-1" /> Discord
+                            </label>
+                            <input 
+                                type="url" 
+                                bind:value={campaignData.discord}
+                                class="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                                placeholder="Discord server invite"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="mt-8 p-4 bg-gray-700 rounded-lg border border-gray-600">
+                        <h3 class="text-white font-medium mb-2">Campaign Creation Fee</h3>
+                        <p class="text-gray-400 text-sm">Creating a campaign requires a fee of {(10 / ergoPrice).toFixed(2)} ERG (~$10)</p>
+                    </div>
+                </div>
+            {/if}
+
+            <!-- Navigation Buttons -->
+            <div class="flex justify-between mt-8">
+                <button
+                    class="px-6 py-2 rounded-lg font-medium transition-colors
+                           {currentStep === 1 ? 'opacity-50 cursor-not-allowed bg-gray-700 text-gray-400' : 
+                           'bg-transparent border border-gray-600 text-white hover:bg-gray-700'}"
+                    on:click={previousStep}
+                    disabled={currentStep === 1}
+                >
+                    Previous Step
+                </button>
+
+                {#if currentStep === totalSteps}
+                    <button
+                        class="px-6 py-2 rounded-lg font-medium transition-colors bg-cyan-500 text-white hover:bg-cyan-600 flex items-center gap-2"
+                        on:click={handleSubmit}
+                    >
+                        Create Campaign
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </button>
+                {:else}
+                    <button
+                        class="px-6 py-2 rounded-lg font-medium transition-colors bg-cyan-500 text-white hover:bg-cyan-600 flex items-center gap-2"
+                        on:click={nextStep}
+                    >
+                        Next Step
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                    </button>
+                {/if}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom checkbox styling */
+    input[type="checkbox"] {
+        width: 1rem;
+        height: 1rem;
+        border-radius: 0.25rem;
+        border: 1px solid rgb(75 85 99);
+        background-color: rgb(55 65 81);
+        cursor: pointer;
+    }
+
+    input[type="checkbox"]:checked {
+        background-color: rgb(6 182 212);
+        border-color: rgb(6 182 212);
+    }
+
+    /* Custom date input styling */
+    input[type="date"] {
+        color-scheme: dark;
+    }
+
+    /* Remove number input arrows */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+
+    :global(.dark) input[type="date"] {
+        color-scheme: dark;
+    }
+</style>

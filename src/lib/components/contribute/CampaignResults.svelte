@@ -7,70 +7,68 @@
 <div class="results-container">
     <h3 class="results-title">Campaign Results</h3>
     <div class="results-content">
-        {#each campaign.contributions || [] as contribution}
-            <div class="result-item">
-                <span class="result-label">Total Raised:</span>
-                <span class="result-value">
-                    {contribution.amount}
-                    {contribution.asset === campaign.base_token_id ? campaign.base_name : 'ERG'}
-                </span>
-            </div>
-        {/each}
-
-        <!-- Display minted token ID for MintPlusLP type -->
-        {#if campaign.campaign_type === 'mintpluslp' && campaign.token_id}
-            <div class="result-item">
-                <CopyableAddress
-                    label="Minted Token ID"
-                    address={campaign.token_id}
-                />
-            </div>
-        {/if}
-
-        <!-- Display LP token ID for both types -->
-        {#if campaign.lp_tokenid}
-            <div class="result-item">
-                <CopyableAddress
-                    label="LP Token ID"
-                    address={campaign.lp_tokenid}
-                />
-            </div>
-        {/if}
-
-        <!-- Display MewFinance link if LP token exists -->
-        {#if campaign.lp_tokenid}
-            <div class="result-item">
-                <div class="flex flex-col gap-1 w-full">
-                    <a
-                        href={`https://dex.mewfinance.com/ergo/liquidity/${campaign.lp_tokenid}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                    >
-                        View on MewFinance →
-                    </a>
+        <!-- Contributions Grid -->
+        <div class="results-grid">
+            {#each campaign.contributions || [] as contribution}
+                <div class="result-item">
+                    <div class="stat-box">
+                        <span class="result-label">Total Raised</span>
+                        <span class="result-value">
+                            {contribution.amount} {contribution.asset === campaign.base_token_id ? campaign.base_name : 'ERG'}
+                        </span>
+                    </div>
                 </div>
-            </div>
-        {/if}
+            {/each}
 
-        {#if campaign.lp_tokenid}
-            <div class="lp-container">
-                <CampaignStats
-                    stats={[
-                        {
-                            label: 'Total LP Share',
-                            value: campaign.total_lp_share,
-                            format: 'number'
-                        },
-                        {
-                            label: 'LP Fee',
-                            value: campaign.lp_fee,
-                            format: 'percentage'
-                        }
-                    ]}
-                    columns={2}
-                />
+            <!-- Token IDs Section -->
+            <div class="tokens-section">
+                {#if campaign.campaign_type === 'mintpluslp' && campaign.token_id}
+                    <div class="stat-box">
+                        <span class="result-label">Minted Token</span>
+                        <CopyableAddress
+                            address={campaign.token_id}
+                            customClass="token-id"
+                        />
+                    </div>
+                {/if}
+
+                {#if campaign.lp_tokenid}
+                    <div class="stat-box">
+                        <span class="result-label">LP Token</span>
+                        <CopyableAddress
+                            address={campaign.lp_tokenid}
+                            customClass="token-id"
+                        />
+                    </div>
+                {/if}
             </div>
+
+            <!-- Stats Section -->
+            {#if campaign.lp_tokenid}
+                <div class="stats-section">
+                    <div class="stat-box">
+                        <span class="result-label">Total LP Share</span>
+                        <span class="result-value">{campaign.total_lp_share.toLocaleString()}</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="result-label">LP Fee</span>
+                        <span class="result-value">{campaign.lp_fee}%</span>
+                    </div>
+                </div>
+            {/if}
+        </div>
+
+        <!-- MewFinance Link -->
+        {#if campaign.lp_tokenid}
+            <a
+                href={`https://dex.mewfinance.com/ergo/liquidity/${campaign.lp_tokenid}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-primary"
+            >
+                <span>View Pool on MewFinance</span>
+                
+            </a>
         {/if}
     </div>
 </div>
@@ -79,52 +77,72 @@
     .results-container {
         background-color: var(--footer);
         border-radius: 0.75rem;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
+        padding: 1rem;
         border: 1px solid var(--main-color);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        position: relative;
-        overflow: hidden;
     }
+
     .results-title {
         color: var(--main-color);
-        font-size: 1.25rem;
+        font-size: 1rem;
         font-weight: 600;
-        margin-bottom: 1rem;
-        padding-bottom: 0.75rem;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
+
     .results-content {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.75rem;
     }
-    .result-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem;
+
+    .results-grid {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .stat-box {
         background-color: rgba(0, 0, 0, 0.2);
-        border-radius: 0.5rem;
-        transition: transform 0.2s ease;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
     }
-    .result-item:hover {
-        transform: translateX(4px);
+
+    .tokens-section {
+        display: grid;
+        gap: 0.5rem;
     }
+
+    .stats-section {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
     .result-label {
         color: var(--main-color);
-        font-size: 0.875rem;
+        font-size: 0.75rem;
         font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
     }
+
     .result-value {
         color: white;
         font-weight: 500;
         font-size: 0.875rem;
         font-family: 'Inter', sans-serif;
     }
-    .lp-container {
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+    .token-id {
+        font-size: 0.75rem;
+        color: white;
+        word-break: break-all;
     }
+
+
+
 </style>
