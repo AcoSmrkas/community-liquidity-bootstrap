@@ -15,7 +15,7 @@ const config = {
 
     // Set the base path for your production deployment
     paths: {
-      base: 'https://fund.mewfinance.com'
+      base: process.env.NODE_ENV === 'production' ? '/mew-community-liquidity-bootstrap' : ''
     },
 
     // Configure the routes
