@@ -1,106 +1,146 @@
-<script>
-    import { onMount } from 'svelte';
-    import { addCampaign } from '../stores/campaignStore';
-    import BaseCampaignForm from '../components/BaseCampaignForm.svelte';
-    import CrowdfundForm from '../components/CrowdfundForm.svelte';
-    // Import other campaign type components similarly
-
+<script lang="ts">
+    import { defaultCampaignData } from '$lib/components/types/campaign.js';
+    import { campaigns } from '$lib/store/campaignStore';
+    import { validateCampaignForm } from '$lib/utils/validation';
+    import BaseCampaignForm from '$lib/components/forms/BaseCampaignForm.svelte';
+    import CrowdfundForm from '$lib/components/forms/CrowdfundForm.svelte';
+    import MintPlusLPForm from '$lib/components/forms/MintPlusLPForm.svelte';
+    import MultiAssetLPForm from '$lib/components/forms/MultiAssetLPForm.svelte';
+    import ERGAssetLPForm from '$lib/components/forms/ERGAssetLPForm.svelte';
+    import ValidationSummary from '$lib/components/ui/ValidationSummary.svelte';
+    import axios from 'axios';
+  
     let currentStep = 1;
     const totalSteps = 2;
-
-    let campaignData = {
-        campaign_type: "crowdfund",
-        title: "",
-        description: "",
-        start_date: "",
-        end_date: "",
-        min_contribution: 0,
-        max_contribution: 0,
-        base_name: "ERG",
-        base_token_id: null,
-        base_decimals: 9,
-        base_target_amount: 0,
-        recipient_address: ""
-    };
-
-    $: isFormValid = validateForm();
-
-    function validateForm() {
-        if (!campaignData.title || !campaignData.description) return false;
-        if (!campaignData.start_date || !campaignData.end_date) return false;
-        if (new Date(campaignData.start_date) >= new Date(campaignData.end_date)) return false;
-        
-        // Add type-specific validation
-        if (campaignData.campaign_type === 'crowdfund') {
-            if (!campaignData.recipient_address || campaignData.base_target_amount <= 0) return false;
-        }
-        
-        return true;
+  
+    let campaignData = { ...defaultCampaignData };
+    let validationErrors = [];
+    let isSubmitting = false;
+    let submitSuccess = false;
+    let submitError = '';
+  
+    $: {
+      if (campaignData.campaign_type === 'crowdfund') {
+        campaignData.token_name = "";
+        campaignData.token_description = "";
+        campaignData.total_supply = 0;
+        campaignData.secondary_token_id = null;
+        campaignData.secondary_token_name = "";
+      }
     }
-
-    function handleSubmit() {
-        if (!isFormValid) {
-            alert('Please fill all required fields');
-            return;
+  
+    async function handleSubmit() {
+      validationErrors = validateCampaignForm(campaignData);
+  
+      if (validationErrors.length === 0) {
+        isSubmitting = true;
+  
+        try {
+          const response = await axios.post('https://api.mewfinance.com/mew/fund/insertCampaign', campaignData, {
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          submitSuccess = true;
+          window.location.href = '/campaigns';
+        } catch (error) {
+          submitError = 'Error submitting campaign data. Please try again later.';
+          console.error('Error submitting campaign data:', error);
+        } finally {
+          isSubmitting = false;
         }
-
-        addCampaign(campaignData);
-        window.location.href = '/campaigns';
+      }
     }
-</script>
-
-<div class="min-h-screen bg-gray-900 py-8 px-4 sm:px-6 lg:px-8">
+  </script>
+  
+  <div class="container mx-auto px-4 py-8" style="margin-top: 45px;">
     <div class="max-w-3xl mx-auto">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-white mb-2">Create New Campaign</h1>
-            <p class="text-gray-400">Launch your project on the Ergo blockchain</p>
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-[var(--main-color)] mb-2">Create New Campaign</h1>
+        <p class="text-[var(--text-secondary)]">Launch your project on the Ergo blockchain</p>
+      </div>
+  
+      <div class="bg-[var(--forms-bg)] rounded-xl p-6 border border-[var(--border-color)]">
+        {#if currentStep === 1}
+          <BaseCampaignForm bind:data={campaignData} />
+        {:else if currentStep === 2}
+          {#if campaignData.campaign_type === 'crowdfund'}
+            <CrowdfundForm bind:data={campaignData} />
+          {:else if campaignData.campaign_type === 'mintpluslp'}
+            <MintPlusLPForm bind:data={campaignData} />
+          {:else if campaignData.campaign_type === 'multiassetlp'}
+            <MultiAssetLPForm bind:data={campaignData} />
+          {:else if campaignData.campaign_type === 'ergassetlp'}
+            <ERGAssetLPForm bind:data={campaignData} />
+          {/if}
+        {/if}
+  
+        <div class="flex justify-between mt-8">
+          <button
+            class="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+            on:click={() => currentStep--}
+            disabled={currentStep === 1}
+          >
+            Previous
+          </button>
+  
+          {#if currentStep === totalSteps}
+            <button
+              class="btn"
+              on:click={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Submitting...' : 'Create Campaign'}
+            </button>
+          {:else}
+            <button
+              class="btn"
+              on:click={() => currentStep++}
+            >
+              Next
+            </button>
+          {/if}
         </div>
-
-        <div class="bg-gray-800 rounded-xl shadow-lg p-6 mb-8">
-            {#if currentStep === 1}
-                <BaseCampaignForm 
-                    {campaignData}
-                    on:change={e => campaignData = e.detail}
-                />
-            {:else if currentStep === 2}
-                {#if campaignData.campaign_type === 'crowdfund'}
-                    <CrowdfundForm
-                        {campaignData}
-                        on:change={e => campaignData = {...campaignData, ...e.detail}}
-                    />
-                {/if}
-                <!-- Add other campaign type forms here -->
-            {/if}
-
-            <!-- Navigation -->
-            <div class="flex justify-between mt-8">
-                <button
-                    class="px-6 py-2 rounded-lg font-medium transition-colors
-                           {currentStep === 1 ? 'opacity-50 cursor-not-allowed bg-gray-700 text-gray-400' : 
-                           'bg-gray-700 text-white hover:bg-gray-600 border border-gray-600'}"
-                    on:click={() => currentStep--}
-                    disabled={currentStep === 1}
-                >
-                    Previous
-                </button>
-
-                {#if currentStep === totalSteps}
-                    <button
-                        class="px-6 py-2 rounded-lg font-medium transition-colors bg-cyan-500 hover:bg-cyan-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                        on:click={handleSubmit}
-                        disabled={!isFormValid}
-                    >
-                        Create Campaign
-                    </button>
-                {:else}
-                    <button
-                        class="px-6 py-2 rounded-lg font-medium transition-colors bg-cyan-500 hover:bg-cyan-600 text-white"
-                        on:click={() => currentStep++}
-                    >
-                        Next
-                    </button>
-                {/if}
-            </div>
+  
+        {#if validationErrors.length > 0}
+          <div class="mt-6 bg-[var(--card-bg)] border border-red-500/20 rounded-lg p-4">
+            <h4 class="text-red-400 font-medium mb-2">Please check the following:</h4>
+            <ul class="space-y-1 text-sm text-red-400">
+              {#each validationErrors as error}
+                <li>• {error}</li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+  
+        {#if submitSuccess}
+          <div class="mt-6 bg-[var(--card-bg)] border border-green-500/20 rounded-lg p-4">
+            <h4 class="text-green-400 font-medium mb-2">Campaign submitted successfully!</h4>
+          </div>
+        {:else if submitError}
+          <div class="mt-6 bg-[var(--card-bg)] border border-red-500/20 rounded-lg p-4">
+            <h4 class="text-red-400 font-medium mb-2">Error submitting campaign:</h4>
+            <p class="text-sm text-red-400">{submitError}</p>
+          </div>
+        {/if}
+  
+        <!-- Step indicator -->
+        <div class="mt-6 flex justify-center gap-2">
+          {#each Array(totalSteps) as _, i}
+            <div 
+              class="w-2 h-2 rounded-full transition-colors duration-200
+                     {currentStep === i + 1 
+                         ? 'bg-[var(--main-color)]' 
+                         : 'bg-[var(--border-color)]'}"
+            />
+          {/each}
         </div>
+      </div>
     </div>
-</div>
+  </div>
+  
+  <style>
+    :global(body) {
+      background-color: var(--card-bg);
+    }
+  </style>
