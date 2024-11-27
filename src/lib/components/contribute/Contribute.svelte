@@ -677,7 +677,7 @@
                 {#if campaign.recipient_address}
                     <CopyableAddress
                         label="Crowdfunder"
-                        address={campaign.recipient_address}
+                        address={campaign.applicant}
                     />
                 {/if}
 
