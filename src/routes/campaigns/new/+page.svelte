@@ -4,6 +4,7 @@
     import { validateCampaignForm } from '$lib/utils/validation';
     import BaseCampaignForm from '$lib/components/forms/BaseCampaignForm.svelte';
     import CrowdfundForm from '$lib/components/forms/CrowdfundForm.svelte';
+    import { selected_wallet, connected_wallet_address } from "$lib/store/store.ts";
     import MintPlusLPForm from '$lib/components/forms/MintPlusLPForm.svelte';
     import MultiAssetLPForm from '$lib/components/forms/MultiAssetLPForm.svelte';
     import ERGAssetLPForm from '$lib/components/forms/ERGAssetLPForm.svelte';
@@ -20,16 +21,36 @@
     let submitError = '';
   
     $: {
-      if (campaignData.campaign_type === 'crowdfund') {
-        campaignData.token_name = "";
-        campaignData.token_description = "";
-        campaignData.total_supply = 0;
-        campaignData.secondary_token_id = null;
-        campaignData.secondary_token_name = "";
-      }
+  // Set applicant for all campaign types
+  campaignData.applicant = $selected_wallet;
+
+  // Reset fields based on campaign type
+  if (campaignData.campaign_type === 'crowdfund') {
+    campaignData.token_name = "";
+    campaignData.token_description = "";
+    campaignData.total_supply = 0;
+    campaignData.token_id = null;  // Changed from secondary_token_id to match your schema
+    campaignData.token_name = "";
+  } else if (campaignData.campaign_type === 'multiassetlp') {
+    // Add specific handling for multiassetlp
+    campaignData.total_supply = 0;
+    if (!campaignData.token_id) {  // Initialize if not set
+      campaignData.token_id = null;
+      campaignData.token_name = "";
+      campaignData.token_decimals = 0;
     }
+  }
+
+  console.log('Updated Campaign Data:', {
+    type: campaignData.campaign_type,
+    token_id: campaignData.token_id,
+    base_token_id: campaignData.base_token_id,
+    applicant: campaignData.applicant
+  });
+}
   
     async function handleSubmit() {
+      console.log('campaignData:', campaignData);
       validationErrors = validateCampaignForm(campaignData);
   
       if (validationErrors.length === 0) {
@@ -127,10 +148,10 @@
         <!-- Step indicator -->
         <div class="mt-6 flex justify-center gap-2">
           {#each Array(totalSteps) as _, i}
-            <div 
+            <div
               class="w-2 h-2 rounded-full transition-colors duration-200
-                     {currentStep === i + 1 
-                         ? 'bg-[var(--main-color)]' 
+                     {currentStep === i + 1
+                         ? 'bg-[var(--main-color)]'
                          : 'bg-[var(--border-color)]'}"
             />
           {/each}

@@ -10,7 +10,6 @@
     import ValidationSummary from '$lib/components/ui/ValidationSummary.svelte';
     import axios from 'axios';
   
-	
     let currentStep = 1;
     const totalSteps = 2;
   

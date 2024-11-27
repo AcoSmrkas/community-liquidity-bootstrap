@@ -163,8 +163,9 @@
         </a>
     </div>
 {/if}
-    <!-- Common Fees and Dates Section -->
-    <div class="fees-section">
+   <!-- Common Fees and Dates Section -->
+<div class="fees-section">
+    {#if campaignType === 'mintpluslp' || campaignType === 'multiassetlp' || campaignType === 'ergassetlp'}
         <div class="fees-grid">
             <div class="fee-card">
                 <div class="fee-label">LP Fee</div>
@@ -179,18 +180,19 @@
                 <div class="fee-value">3%</div>
             </div>
         </div>
-        
-        <div class="dates-grid">
-            <div class="fee-card">
-                <div class="fee-label">Start Date</div>
-                <div class="date-value">{formatDateTime(startDate)}</div>
-            </div>
-            <div class="fee-card">
-                <div class="fee-label">End Date</div>
-                <div class="date-value">{formatDateTime(endDate)}</div>
-            </div>
+    {/if}
+    
+    <div class="dates-grid" class:mt-0={campaignType === 'crowdfund'}>
+        <div class="fee-card">
+            <div class="fee-label">Start Date</div>
+            <div class="date-value">{formatDateTime(startDate)}</div>
+        </div>
+        <div class="fee-card">
+            <div class="fee-label">End Date</div>
+            <div class="date-value">{formatDateTime(endDate)}</div>
         </div>
     </div>
+</div>
 </div>
 <style>
     .asset-container {
