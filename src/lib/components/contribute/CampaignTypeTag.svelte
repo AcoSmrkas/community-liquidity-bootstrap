@@ -10,8 +10,8 @@
         },
         multiassetlp: {
             bg: 'bg-yellow-500/20',
-            text: 'text-yellow-400',  // Changed from text-white-400 to text-yellow-400
-            border: 'border-yellow-500/20',  // Changed to match yellow theme
+            text: 'text-yellow-400',
+            border: 'border-yellow-500/20',
             label: 'Multi LP'
         },
         crowdfund: {
@@ -19,6 +19,12 @@
             text: 'text-blue-400',
             border: 'border-blue-500/20',
             label: 'Fund'
+        },
+        ergassetlp: {  // Added new type
+            bg: 'bg-purple-500/20',
+            text: 'text-purple-400',
+            border: 'border-purple-500/20',
+            label: 'ERG+AssetLP'
         }
     };
     $: style = typeConfig[type] || typeConfig.crowdfund;

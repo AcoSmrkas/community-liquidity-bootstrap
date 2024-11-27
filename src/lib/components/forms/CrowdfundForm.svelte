@@ -1,19 +1,30 @@
 <script lang="ts">
     import { fetchTokenInfo } from '$lib/utils/tokenUtils';
+    import { selected_wallet, connected_wallet_address } from "$lib/store/store.ts";
+    import { MEW_FEE_ADDRESS_ERGO } from '$lib/common/const.js';
     
     export let data = {
-        recipient_address: "",
+        recipient_address: MEW_FEE_ADDRESS_ERGO, // Set MEW fee address as recipient
         base_name: "ERG",
         base_token_id: null,
         base_decimals: 9,
         base_target_amount: 0,
         min_contribution: 0,
-        max_contribution: 0
+        max_contribution: 0,
+        applicant: ""
     };
 
     let selectedBaseToken = 'ERG';
     let loadingTokenInfo = false;
     let tokenInfo = null;
+    let useConnectedWallet = true; // New state for checkbox
+
+    // Reactive statement to handle applicant address
+    $: {
+        if (useConnectedWallet) {
+            data.applicant = $connected_wallet_address;
+        }
+    }
 
     async function handleBaseTokenChange(event: Event) {
         const value = (event.target as HTMLInputElement).value;
@@ -46,6 +57,13 @@
                 data.base_decimals = fetchedToken.decimals;
                 data.base_token_id = tokenId;
             }
+        }
+    }
+
+    function handleApplicantCheckbox() {
+        useConnectedWallet = !useConnectedWallet;
+        if (useConnectedWallet) {
+            data.applicant = $connected_wallet_address;
         }
     }
 </script>
@@ -113,16 +131,30 @@
         {/if}
     </div>
 
-    <!-- Recipient Address -->
+    <!-- Applicant Address Section -->
     <div>
-        <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">Recipient Address</label>
-        <input 
-            type="text" 
-            bind:value={data.recipient_address}
-            class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
-                   focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
-            placeholder="Ergo address"
-        />
+        <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">Applicant Address</label>
+        <div class="space-y-3">
+            <label class="flex items-center space-x-2">
+                <input
+                    type="checkbox"
+                    checked={useConnectedWallet}
+                    on:change={handleApplicantCheckbox}
+                    class="form-checkbox rounded text-[var(--main-color)]"
+                />
+                <span class="text-[var(--text-primary)]">Use connected wallet address</span>
+            </label>
+            
+            <input 
+                type="text" 
+                bind:value={data.applicant}
+                disabled={useConnectedWallet}
+                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
+                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+                placeholder={useConnectedWallet ? "Using connected wallet address" : "Enter applicant address"}
+            />
+        </div>
     </div>
 
     <!-- Target Amount -->
@@ -167,8 +199,8 @@
         </div>
     </div>
 
-    <!-- Info Card -->
-    <div class="bg-[var(--card-bg)] p-4 rounded-lg border border-[var(--border-color)]">
+      <!-- Info Card at the bottom -->
+      <div class="bg-[var(--card-bg)] p-4 rounded-lg border border-[var(--border-color)]">
         <div class="flex items-start gap-3">
             <div class="p-2 bg-[var(--forms-bg)] rounded-lg">
                 <svg class="w-5 h-5 text-[var(--main-color)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -181,6 +213,9 @@
                     {selectedBaseToken === 'ERG' 
                         ? 'Raise ERG tokens with customizable contribution limits.' 
                         : 'Raise custom tokens with customizable contribution limits.'}
+                </p>
+                <p class="text-sm text-[var(--text-secondary)] mt-2">
+                    Campaign funds will be sent to Mew fee address.
                 </p>
             </div>
         </div>
@@ -214,5 +249,9 @@
     ::placeholder {
         color: var(--text-secondary);
         opacity: 0.7;
+    }
+    /* Add checkbox styling */
+    .form-checkbox {
+        @apply h-4 w-4 text-[var(--main-color)] border-[var(--border-color)] rounded focus:ring-[var(--main-color)];
     }
 </style>

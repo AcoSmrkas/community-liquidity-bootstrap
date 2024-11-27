@@ -1,6 +1,9 @@
 export function validateCampaignForm(campaignData) {
     const errors = [];
 
+    // Add applicant validation at the top
+    if (!campaignData.applicant) errors.push('Wallet connection required');
+
     // Basic validation
     if (!campaignData.title) errors.push('Campaign title is required');
     if (!campaignData.description) errors.push('Campaign description is required');
@@ -16,7 +19,7 @@ export function validateCampaignForm(campaignData) {
     // Type-specific validation
     switch (campaignData.campaign_type) {
         case 'crowdfund':
-            if (!campaignData.recipient_address) errors.push('Recipient address is required');
+           
             break;
             
         case 'mintpluslp':
@@ -25,9 +28,15 @@ export function validateCampaignForm(campaignData) {
             if (!campaignData.token_decimals) errors.push('Token decimals is required');
             break;
             
-        case 'multiassetlp':
+            case 'multiassetlp':
+                if (!campaignData.token_id) errors.push('Second token is required');
+                if (!campaignData.base_token_id) errors.push('First token is required');
+                if (campaignData.token_target_amount <= 0) errors.push('Second token amount must be greater than 0');
+                if (!campaignData.min_token || !campaignData.max_token) errors.push('Second token contribution limits are required');
+                break;
+            
         case 'ergassetlp':
-            if (!campaignData.secondary_token_id) errors.push('Secondary token is required');
+            if (!campaignData.token_id) errors.push('Token is required');
             break;
     }
 

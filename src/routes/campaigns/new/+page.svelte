@@ -21,59 +21,75 @@
     let submitError = '';
   
     $: {
-  // Set applicant for all campaign types
+  // Always set the applicant
   campaignData.applicant = $selected_wallet;
+  console.log("Setting applicant in page:", campaignData.applicant);
 
-  // Reset fields based on campaign type
   if (campaignData.campaign_type === 'crowdfund') {
     campaignData.token_name = "";
     campaignData.token_description = "";
     campaignData.total_supply = 0;
-    campaignData.token_id = null;  // Changed from secondary_token_id to match your schema
+    campaignData.token_id = null;
     campaignData.token_name = "";
-  } else if (campaignData.campaign_type === 'multiassetlp') {
-    // Add specific handling for multiassetlp
+  } else if (['multiassetlp', 'ergassetlp'].includes(campaignData.campaign_type)) {
     campaignData.total_supply = 0;
-    if (!campaignData.token_id) {  // Initialize if not set
+    if (!campaignData.token_id) {
       campaignData.token_id = null;
       campaignData.token_name = "";
       campaignData.token_decimals = 0;
+      // Set min_token and max_token based on the input values
+      campaignData.min_token = campaignData.min_token || 0;
+      campaignData.max_token = campaignData.max_token || 0;
+    }
+
+    // Additional setup for these types
+    if (campaignData.campaign_type === 'ergassetlp') {
+      campaignData.base_name = "ERG";
+      campaignData.base_token_id = null;
+      campaignData.base_decimals = 9;
+      // Set min_token and max_token based on the input values
+      campaignData.min_token = campaignData.min_token || 0;
+      campaignData.max_token = campaignData.max_token || 0;
     }
   }
 
-  console.log('Updated Campaign Data:', {
+  console.log('Campaign Data Updated:', {
     type: campaignData.campaign_type,
+    applicant: campaignData.applicant,
     token_id: campaignData.token_id,
-    base_token_id: campaignData.base_token_id,
-    applicant: campaignData.applicant
+    base_token_id: campaignData.base_token_id
   });
-}
+};
   
     async function handleSubmit() {
-      console.log('campaignData:', campaignData);
-      validationErrors = validateCampaignForm(campaignData);
+        // Log complete campaign data before submission
+        console.log('Submitting Campaign Data:', campaignData);
+        validationErrors = validateCampaignForm(campaignData);
   
-      if (validationErrors.length === 0) {
-        isSubmitting = true;
+        if (validationErrors.length === 0) {
+            isSubmitting = true;
   
-        try {
-          const response = await axios.post('https://api.mewfinance.com/mew/fund/insertCampaign', campaignData, {
-            headers: {
-              'Content-Type': 'application/json'
-            }
-          });
-          submitSuccess = true;
-          window.location.href = '/campaigns';
-        } catch (error) {
-          submitError = 'Error submitting campaign data. Please try again later.';
-          console.error('Error submitting campaign data:', error);
-        } finally {
-          isSubmitting = false;
-        }
-      }
+            try {
+  const response = await axios.post('https://api.mewfinance.com/mew/fund/insertCampaign', campaignData, {
+    headers: {
+      'Content-Type': 'application/json'
     }
-  </script>
-  
+  });
+  submitSuccess = true;
+  window.location.href = '/campaigns';
+} catch (error) {
+  console.error('Error submitting campaign data:', error);
+  if (error.response && error.response.data) {
+    submitError = error.response.data.message || 'Error submitting campaign data. Please try again later.';
+  } else {
+    submitError = 'Error submitting campaign data. Please try again later.';
+  }
+} finally {
+  isSubmitting = false;
+}
+        }
+    }
+</script>
   <div class="container mx-auto px-4 py-8" style="margin-top: 45px;">
     <div class="max-w-3xl mx-auto">
       <div class="text-center mb-8">

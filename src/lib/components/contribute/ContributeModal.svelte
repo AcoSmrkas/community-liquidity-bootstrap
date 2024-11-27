@@ -235,7 +235,7 @@
                 </button>
 
                 <!-- Project Token Selection -->
-                {#if campaign.campaign_type === 'multiassetlp'}
+                {#if campaign.campaign_type === 'multiassetlp' || campaign.campaign_type === 'ergassetlp'}
                     <button
                         class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
                         on:click={() => selectAsset(false)}>

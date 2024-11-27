@@ -614,6 +614,110 @@
                     />
                 {/if}
             </div>
+            {:else if campaign.campaign_type === 'ergassetlp'}
+            <!-- Multi Asset LP Campaign Card -->
+            <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <h2 class="text-2xl font-bold text-white">{campaign.title}</h2>
+                            <CampaignTypeTag type="ergassetlp" />
+                        </div>
+                        <p class="text-gray-400 text-sm">{campaign.description}</p>
+                    </div>
+                    <StatusBadge status={getCampaignStatus(campaign)} />
+                </div>
+        
+                {#if campaign.status_phase === 'ended'}
+                    <CampaignResults 
+                        campaign={{
+                            ...campaign,
+                            type: 'ergassetlp',
+                            pool_token_id: campaign.lp_token_id,
+                            mewfinance_url: `https://app.mewfinance.com/pools/${campaign.lp_token_id}`
+                        }} 
+                    />
+                {:else}
+                    <AssetInfo
+                        asset={{
+                            name: campaign.base_name,
+                            iconUrl: campaign.base_icon_url,
+                            tokenId: campaign.base_token_id,
+                            currentAmount: getContributionAmount(campaign, campaign.base_token_id),
+                            targetAmount: campaign.base_target_amount,
+                            progress: calculateProgress(
+                                getContributionAmount(campaign, campaign.base_token_id),
+                                campaign.base_target_amount
+                            )
+                        }}
+                        secondaryAsset={{
+                            name: campaign.token_name,
+                            iconUrl: campaign.token_icon_url,
+                            tokenId: campaign.token_policy_id,
+                            currentAmount: getContributionAmount(campaign, campaign.token_policy_id),
+                            targetAmount: campaign.token_target_amount,
+                            minAmount: campaign.min_token,
+                            maxAmount: campaign.max_token,
+                            progress: calculateProgress(
+                                getContributionAmount(campaign, campaign.token_policy_id),
+                                campaign.token_target_amount
+                            )
+                        }}
+                        campaignType="multiassetlp"
+                        showTokenId={true}
+                        stats={[
+                            {
+                                label: 'Min Contribution',
+                                value: campaign.min_contribution,
+                                format: 'number',
+                                suffix: campaign.base_name
+                            },
+                            {
+                                label: 'Max Contribution',
+                                value: campaign.max_contribution,
+                                format: 'number',
+                                suffix: campaign.base_name
+                            },
+                            {
+                                label: 'Platform Fee',
+                                value: campaign.platform_fee,
+                                format: 'percentage'
+                            },
+                            {
+                                label: 'LP Fee',
+                                value: campaign.lp_fee,
+                                format: 'percentage'
+                            }
+                        ]}
+                        startDate={campaign.start_date}
+                        endDate={campaign.end_date}
+                        status={getCampaignStatus(campaign)}
+                        poolId={campaign.lp_token_id}
+                        totalSupply={campaign.total_supply}
+                        initialPrice={campaign.initial_price}
+                    />
+                    <SocialLinks
+                        socials={{
+                            website: campaign.website,
+                            telegram: campaign.telegram,
+                            twitter: campaign.twitter,
+                            discord: campaign.discord
+                        }}
+                        accentColor="cyan"
+                    />
+                    <CampaignButton
+                        status={getCampaignStatus(campaign)}
+                        startDate={campaign.start_date}
+                        onClick={() => {
+                            if (getCampaignStatus(campaign) === 'active') {
+                                selectedCampaign = campaign;
+                                showContributeModal = true;
+                            }
+                        }}
+                        loading={loading}
+                    />
+                {/if}
+            </div>
         {:else}
             <!-- Crowdfund Campaign Card -->
             <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">

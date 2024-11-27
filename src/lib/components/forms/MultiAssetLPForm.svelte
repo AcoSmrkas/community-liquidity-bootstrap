@@ -12,7 +12,7 @@
         max_contribution: 0,
         base_icon_url: "",
         
-        // Second Token Fields (using exact schema names)
+        // Second Token Fields
         token_id: null,
         token_name: "",
         token_decimals: 0,
@@ -35,76 +35,72 @@
     let loadingTokenInfo = false;
     let baseTokenInfo = null;
     let tokenInfo = null;
-
-    // Add validation state tracking
     let baseTokenError = false;
     let tokenError = false;
 
-    // Watch for changes in token IDs
+    let useConnectedWallet = true;
+
+    // Add reactive statement to ensure applicant is always set
     $: {
-        console.log("Token State:", {
-            base_token_id: data.base_token_id,
-            token_id: data.token_id,
-            baseTokenError,
-            tokenError
-        });
-    }
-
-    async function handleBaseTokenIdInput(event: Event) {
-        const tokenId = (event.target as HTMLInputElement).value.trim();
-        baseTokenError = !tokenId;
-        
-        if (tokenId && tokenId.length === 64) {
-            loadingBaseTokenInfo = true;
-            const fetchedToken = await fetchTokenInfo(tokenId);
-            loadingBaseTokenInfo = false;
-            
-            if (fetchedToken) {
-                baseTokenInfo = fetchedToken;
-                data.base_token_id = tokenId; // Set this first
-                data.base_name = fetchedToken.name;
-                data.base_decimals = fetchedToken.decimals;
-                baseTokenError = false;
-            } else {
-                baseTokenError = true;
-            }
+        if (useConnectedWallet) {
+            data.applicant = $connected_wallet_address;
         }
+        console.log("Current applicant:", data.applicant);
     }
-
-    async function handleTokenIdInput(event: Event) {
-        const tokenId = (event.target as HTMLInputElement).value.trim();
-        tokenError = !tokenId;
-        
-        if (tokenId && tokenId.length === 64) {
-            loadingTokenInfo = true;
-            const fetchedToken = await fetchTokenInfo(tokenId);
-            loadingTokenInfo = false;
-            
-            if (fetchedToken) {
-                tokenInfo = fetchedToken;
-                // Important: Set token_id before other fields
-                data.token_id = tokenId;
-                data.token_name = fetchedToken.name;
-                data.token_decimals = fetchedToken.decimals;
-                tokenError = false;
-                
-                console.log("Token set successfully:", {
-                    token_id: data.token_id,
-                    token_name: data.token_name,
-                    token_decimals: data.token_decimals
-                });
-            } else {
-                tokenError = true;
-            }
-        }
+$: isTokensValid = data.base_token_id && data.token_id;
+async function handleBaseTokenIdInput(event: Event) {
+    const tokenId = (event.target as HTMLInputElement).value.trim();
+    
+    if (!tokenId || tokenId.length !== 64) {
+        baseTokenError = true;
+        data.base_token_id = null;  // Clear invalid token ID
+        return;
     }
+    
+    loadingBaseTokenInfo = true;
+    const fetchedToken = await fetchTokenInfo(tokenId);
+    loadingBaseTokenInfo = false;
+    
+    if (fetchedToken) {
+        baseTokenInfo = fetchedToken;
+        data.base_name = fetchedToken.name;
+        data.base_decimals = fetchedToken.decimals;
+        data.base_token_id = tokenId;  // Set valid token ID
+        baseTokenError = false;
+    } else {
+        baseTokenError = true;
+        data.base_token_id = null;  // Clear invalid token ID
+    }
+}
 
-    // Validate required fields
-    $: isValid = data.base_token_id && data.token_id;
+async function handleTokenIdInput(event: Event) {
+    const tokenId = (event.target as HTMLInputElement).value.trim();
+    
+    if (!tokenId || tokenId.length !== 64) {
+        tokenError = true;
+        data.token_id = null;  // Clear invalid token ID
+        return;
+    }
+    
+    loadingTokenInfo = true;
+    const fetchedToken = await fetchTokenInfo(tokenId);
+    loadingTokenInfo = false;
+    
+    if (fetchedToken) {
+        tokenInfo = fetchedToken;
+        data.token_name = fetchedToken.name;
+        data.token_decimals = fetchedToken.decimals;
+        data.token_id = tokenId;  // Set valid token ID
+        tokenError = false;
+    } else {
+        tokenError = true;
+        data.token_id = null;  // Clear invalid token ID
+    }
+}
 </script>
 
 <div class="space-y-6">
-    <!-- Base Token Selection -->
+    <!-- First Token Selection -->
     <div>
         <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
             First Token ID
@@ -119,6 +115,9 @@
                    focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
             required
         />
+        {#if baseTokenError}
+            <p class="mt-1 text-sm text-red-400">First token ID is required</p>
+        {/if}
         
         {#if loadingBaseTokenInfo}
             <div class="mt-2 text-[var(--main-color)] text-sm">Loading token information...</div>
@@ -137,9 +136,6 @@
                 </div>
             </div>
         {/if}
-        {#if baseTokenError}
-            <p class="mt-1 text-sm text-red-400">First token ID is required</p>
-        {/if}
     </div>
 
     <!-- Second Token Selection -->
@@ -157,6 +153,9 @@
                    focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
             required
         />
+        {#if tokenError}
+            <p class="mt-1 text-sm text-red-400">Second token ID is required</p>
+        {/if}
         
         {#if loadingTokenInfo}
             <div class="mt-2 text-[var(--main-color)] text-sm">Loading token information...</div>
@@ -175,9 +174,6 @@
                 </div>
             </div>
         {/if}
-        {#if tokenError}
-            <p class="mt-1 text-sm text-red-400">Second token ID is required</p>
-        {/if}
     </div>
 
     <!-- Target Amounts -->
@@ -185,7 +181,6 @@
         <div>
             <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
                 First Token Target Amount {baseTokenInfo?.name ? `(${baseTokenInfo.name})` : ''}
-                <span class="text-red-400 ml-1">*</span>
             </label>
             <input 
                 type="number"
@@ -193,13 +188,11 @@
                 class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
                        focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
                 placeholder="First token amount"
-                required
             />
         </div>
         <div>
             <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
                 Second Token Target Amount {tokenInfo?.name ? `(${tokenInfo.name})` : ''}
-                <span class="text-red-400 ml-1">*</span>
             </label>
             <input 
                 type="number"
@@ -207,15 +200,93 @@
                 class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
                        focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
                 placeholder="Second token amount"
-                required
             />
         </div>
     </div>
 
-    <!-- Rest of your form remains the same -->
-    <!-- LP Settings, contribution limits, etc. -->
+    <!-- LP Settings -->
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">Initial LP %</label>
+            <select 
+                bind:value={data.liquidity_info}
+                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
+                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
+            >
+                <option value="100%">100%</option>
+                <option value="75%">75%</option>
+                <option value="50%">50%</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">LP Fee %</label>
+            <input 
+                type="number"
+                bind:value={data.lp_fee}
+                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
+                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
+                placeholder="e.g., 3"
+            />
+        </div>
+    </div>
 
-    <!-- Info Card with validation status -->
+    <!-- First Token Contribution Limits -->
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
+                Min First Token Contribution {baseTokenInfo?.name ? `(${baseTokenInfo.name})` : ''}
+            </label>
+            <input 
+                type="number"
+                bind:value={data.min_contribution}
+                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
+                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
+                placeholder="Minimum"
+            />
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
+                Max First Token Contribution {baseTokenInfo?.name ? `(${baseTokenInfo.name})` : ''}
+            </label>
+            <input 
+                type="number"
+                bind:value={data.max_contribution}
+                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
+                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
+                placeholder="Maximum"
+            />
+        </div>
+    </div>
+
+    <!-- Second Token Contribution Limits -->
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
+                Min Second Token Contribution {tokenInfo?.name ? `(${tokenInfo.name})` : ''}
+            </label>
+            <input 
+                type="number"
+                bind:value={data.min_token}
+                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
+                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
+                placeholder="Minimum"
+            />
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
+                Max Second Token Contribution {tokenInfo?.name ? `(${tokenInfo.name})` : ''}
+            </label>
+            <input 
+                type="number"
+                bind:value={data.max_token}
+                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
+                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
+                placeholder="Maximum"
+            />
+        </div>
+    </div>
+
+    <!-- Info Card -->
     <div class="bg-[var(--card-bg)] p-4 rounded-lg border border-[var(--border-color)]">
         <div class="flex items-start gap-3">
             <div class="p-2 bg-[var(--forms-bg)] rounded-lg">
@@ -226,7 +297,7 @@
             <div>
                 <h3 class="font-medium mb-1 text-[var(--text-primary)]">Token/Token LP Campaign</h3>
                 <p class="text-sm text-[var(--text-secondary)]">
-                    Both tokens are required to create the liquidity pool.
+                    A liquidity pool will be created with your selected tokens after the campaign ends.
                 </p>
             </div>
         </div>
