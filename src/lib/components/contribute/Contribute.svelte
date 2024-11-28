@@ -654,12 +654,12 @@
                             name: campaign.token_name,
                             iconUrl: campaign.token_icon_url,
                             tokenId: campaign.token_policy_id,
-                            currentAmount: getContributionAmount(campaign, campaign.token_policy_id),
+                            currentAmount: getContributionAmount(campaign, campaign.token_token_id),
                             targetAmount: campaign.token_target_amount,
                             minAmount: campaign.min_token,
                             maxAmount: campaign.max_token,
                             progress: calculateProgress(
-                                getContributionAmount(campaign, campaign.token_policy_id),
+                                getContributionAmount(campaign, campaign.token_token_id),
                                 campaign.token_target_amount
                             )
                         }}
