@@ -192,7 +192,7 @@
                     class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
                     on:click={() => selectAsset(true)}>
                     <img 
-                        src="/api/placeholder/24/24" 
+                        src="https://spectrum.fi/logos/ergo/0000000000000000000000000000000000000000000000000000000000000000.svg" 
                         alt={campaign.base_name} 
                         class="w-8 h-8"
                         on:error={(e) => handleImageError(e, true)}
@@ -234,52 +234,52 @@
                     </div>
                 </button>
 
-                <!-- Project Token Selection -->
-                {#if campaign.campaign_type === 'multiassetlp' || campaign.campaign_type === 'ergassetlp'}
-                    <button
-                        class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
-                        on:click={() => selectAsset(false)}>
-                        <img 
-                            src="/api/placeholder/24/24" 
-                            alt={campaign.token_name}
-                            class="w-8 h-8"
-                            on:error={(e) => handleImageError(e, false)}
-                        />
-                        <div class="text-left flex-1">
-                            <div class="text-primary font-bold font-medium">{campaign.token_name}</div>
-                            <div class="text-gray-400 text-sm">
-                                {#if balanceLoading}
-                                    Loading balance...
-                                {:else if balanceError}
-                                    <span class="text-red-500">{balanceError}</span>
-                                {:else}
-                                    <div class="flex flex-col">
-                                        <span>Balance: {nFormatter(getCurrentBalance(false))} {campaign.token_name}</span>
-                                        {#if !hasSufficientBalance(false)}
-                                            <a 
-                                                href={getSwapUrl(false)} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer" 
-                                                class="text-cyan-500 hover:text-cyan-400 text-xs mt-1"
-                                                on:click|stopPropagation
-                                            >
-                                                → Swap for {campaign.token_name} on MewFinance DEX
-                                            </a>
-                                        {/if}
-                                    </div>
-                                {/if}
-                                <div class="mt-1">
-                                    Min: {campaign.min_token} | Max: {campaign.max_token}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="text-gray-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                            </svg>
-                        </div>
-                    </button>
-                {/if}
+               <!-- Project Token Selection -->
+{#if campaign.campaign_type === 'multiassetlp' || campaign.campaign_type === 'ergassetlp'}
+<button
+    class="selection-button w-full p-4 rounded-lg transition-colors flex items-center space-x-3"
+    on:click={() => selectAsset(false)}>
+    <img
+        src="{campaign.token_icon_url}"
+        alt={campaign.token_name}
+        class="w-8 h-8"
+        on:error={(e) => handleImageError(e, false)}
+    />
+    <div class="text-left flex-1">
+        <div class="text-primary font-bold font-medium">{campaign.token_name}</div>
+        <div class="text-gray-400 text-sm">
+            {#if balanceLoading}
+                Loading balance...
+            {:else if balanceError}
+                <span class="text-red-500">{balanceError}</span>
+            {:else}
+                <div class="flex flex-col">
+                    <span>Balance: {nFormatter(getCurrentBalance(false))} {campaign.token_name}</span>
+                    {#if !hasSufficientBalance(false) && !(campaign.campaign_type === 'ergassetlp' && campaign.token_name.toLowerCase().startsWith('rs'))}
+                        
+                           <a href={getSwapUrl(false)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-cyan-500 hover:text-cyan-400 text-xs mt-1"
+                            on:click|stopPropagation
+                        >
+                            → Swap for {campaign.token_name} on MewFinance DEX
+                        </a>
+                    {/if}
+                </div>
+            {/if}
+            <div class="mt-1">
+                Min: {campaign.min_token} | Max: {campaign.max_token}
+            </div>
+        </div>
+    </div>
+    <div class="text-gray-400">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+    </div>
+</button>
+{/if}
 
                 <!-- Campaign Info Summary -->
                 <div class="mt-6 space-y-3 bg-bg rounded-lg p-4">
