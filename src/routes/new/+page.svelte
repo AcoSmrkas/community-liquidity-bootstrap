@@ -75,7 +75,7 @@
             const usedBoxIds = getCommonBoxIds(utxos, signed.inputs);
             const newOutputs = signed.outputs.filter(output => output.ergoTree === utxos[0].ergoTree);
             updateTempBoxes(myAddress, usedBoxIds, newOutputs);
-            insertCampaign();
+            insertCampaign(txId);
           }
         } catch (e) {
           handleTransactionError(e);
@@ -97,12 +97,14 @@
 
     let onTxSubmitted = function (txId) {
       if (txId) {
-        insertCampaign();
+        insertCampaign(txid);
       }
     }
 
-    async function insertCampaign() {
+    async function insertCampaign(txid) {
       try {
+        campaignData.txid = txid;
+
         const response = await axios.post('https://api.mewfinance.com/mew/fund/insertCampaign', campaignData, {
           headers: {
             'Content-Type': 'application/json'
