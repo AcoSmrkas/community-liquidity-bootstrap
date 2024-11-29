@@ -97,13 +97,13 @@
 
     let onTxSubmitted = function (txId) {
       if (txId) {
-        insertCampaign(txid);
+        insertCampaign(txId);
       }
     }
 
-    async function insertCampaign(txid) {
+    async function insertCampaign(txId) {
       try {
-        campaignData.txid = txid;
+        campaignData.txid = txId;
 
         const response = await axios.post('https://api.mewfinance.com/mew/fund/insertCampaign', campaignData, {
           headers: {
