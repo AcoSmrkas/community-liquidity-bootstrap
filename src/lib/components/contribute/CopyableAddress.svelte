@@ -13,7 +13,7 @@
 
 <div class="address-container">
     <div class="address-content">
-        <span class="address-label">{label}:</span>
+        <span class="address-label" class:hidden={!label}>{label}:</span>
         <div class="address-value-container">
             <span class="address-value" style="max-width: {maxWidth}">{address}</span>
             <button
@@ -35,12 +35,7 @@
         padding: 0.75rem;
         border-radius: 0.5rem;
         margin-bottom: 1.5rem;
-        border: 1px solid var(--main-color);
         transition: all 0.2s ease;
-    }
-
-    .address-container:hover {
-        box-shadow: 0 0 0 1px var(--main-color);
     }
 
     .address-content {
@@ -86,6 +81,7 @@
     .copy-button:hover {
         background-color: var(--main-color);
         border-color: var(--main-color);
+        
     }
 
     .copy-button:active {
@@ -100,6 +96,6 @@
     }
 
     .copy-button:hover .copy-icon {
-        color: white;
+        color: var(--background) !important;
     }
 </style>

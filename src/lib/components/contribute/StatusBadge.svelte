@@ -28,7 +28,8 @@
 </script>
 
 <div class="status-indicator" title={statusStyle.title}>
-    <svg width="12" height="12" viewBox="0 0 12 12">
+    <svg width="12" height="12" viewBox="0 0 12 12" 
+    style="color: var(--forms-bg);background: var(--forms-bg);">
         <circle 
             cx="6" 
             cy="6" 

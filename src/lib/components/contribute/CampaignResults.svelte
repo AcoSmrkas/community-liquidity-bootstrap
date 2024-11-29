@@ -64,9 +64,9 @@
                 href={`https://dex.mewfinance.com/ergo/liquidity/${campaign.lp_tokenid}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                class="btn btn-primary"
+                class="btn btn-primary py-2"
             >
-                <span>View Pool on MewFinance</span>
+                <span>View pool on Mew Finance</span>
                 
             </a>
         {/if}
@@ -74,11 +74,14 @@
 </div>
 
 <style>
+    a {
+        color: var(--background) !important;
+        border: unset !important;
+    }
+
     .results-container {
-        background-color: var(--footer);
+        background-color: var(--forms-bg);
         border-radius: 0.75rem;
-        padding: 1rem;
-        border: 1px solid var(--main-color);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
@@ -103,8 +106,7 @@
     }
 
     .stat-box {
-        background-color: rgba(0, 0, 0, 0.2);
-        padding: 0.5rem 0.75rem;
+        padding: 0.5rem 0rem;
         border-radius: 0.375rem;
         display: flex;
         flex-direction: column;
