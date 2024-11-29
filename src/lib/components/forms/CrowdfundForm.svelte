@@ -1,6 +1,6 @@
 <script lang="ts">
     import { fetchTokenInfo } from '$lib/utils/tokenUtils';
-    import { selected_wallet, connected_wallet_address } from "$lib/store/store.ts";
+    import { connected_wallet_address } from "$lib/store/store.ts";
     import { MEW_FEE_ADDRESS_ERGO } from '$lib/common/const.js';
     
     export let data = {
@@ -202,8 +202,8 @@
       <!-- Info Card at the bottom -->
       <div class="bg-[var(--card-bg)] p-4 rounded-lg border border-[var(--border-color)]">
         <div class="flex items-start gap-3">
-            <div class="p-2 bg-[var(--forms-bg)] rounded-lg">
-                <svg class="w-5 h-5 text-[var(--main-color)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="p-2 pt-3 bg-[var(--forms-bg)] rounded-lg">
+                <svg class="w-10 h-10 text-[var(--main-color)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>

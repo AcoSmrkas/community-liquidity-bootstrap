@@ -16,7 +16,7 @@
   
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold">Active Campaigns</h1>
-            <a href="/campaigns/new" class="btn">
+            <a href="/new" class="btn">
                 Create Campaign
             </a>
         </div>

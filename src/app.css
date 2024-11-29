@@ -101,6 +101,8 @@ h2 {
 .btn {
   border-radius: 12px !important;
   font-size: 0.9em !important;
+  border: unset !important;
+  padding: 10px 15px !important;
 }
 
 .btn-big {
@@ -359,3 +361,37 @@ input:focus, select:focus {
     margin-top: 30px;
     margin-bottom: 15px;
   }
+
+  /* Hide the default radio button */
+input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 2px solid #333; /* Border color of the radio button */
+  width: 20px; /* Size of the radio button */
+  height: 20px;
+  border-radius: 50%; /* Make it circular */
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Create the dot when the radio button is checked */
+input[type="radio"]::after {
+  content: '';
+  width: 10px; /* Size of the dot */
+  height: 10px;
+  background-color: var(--main-color); /* Color of the dot */
+  border-radius: 50%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0); /* Hide by default */
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Show the dot when the radio button is checked */
+input[type="radio"]:checked::after {
+  transform: translate(-50%, -50%) scale(1);
+}
