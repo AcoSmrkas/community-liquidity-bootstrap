@@ -1,22 +1,18 @@
 <script>
-    import { Clock } from 'lucide-svelte';
     import { onMount, onDestroy } from 'svelte';
-    import { Globe, MessageCircle, Twitter, MessagesSquare } from 'lucide-svelte';
     import { sendErgoTx } from "$lib/contract/sendErgoTx.ts";
     import { sendCardanoTx } from "$lib/contract/sendCardanoTx.ts";
     import ErgopayModal from '$lib/components/common/ErgopayModal.svelte';
     import ContributeModal from './ContributeModal.svelte';
-    import CountdownTimer from './Countdown.svelte';
     import CampaignButton from './button.svelte';
     import StatusBadge from './StatusBadge.svelte';
-    import ProgressBar from './ProgressBar.svelte';
     import CampaignTypeTag from './CampaignTypeTag.svelte';
-    import CampaignStats from './CampaignStats.svelte';
     import SocialLinks from './SocialLinks.svelte';
     import AssetInfo from './AssetInfo.svelte';
     import CampaignResults from './CampaignResults.svelte';
     import CopyableAddress from './CopyableAddress.svelte';
     import CreateCampaignModal from './CreateCampaignModal.svelte';
+    import Loading from '$lib/components/common/Loading.svelte';
     import { selected_wallet, connected_wallet_address } from "$lib/store/store.ts";
     import { fetchBoxes, getBlockHeight, updateTempBoxes } from '$lib/api-explorer/explorer.ts';
     import { get } from "svelte/store";
@@ -36,7 +32,7 @@
     let activeTab = 'ergo';
     let campaigns = [];
     let campaignBalances = {};
-    let loading = false;
+    let loading = true;
     let showCreateModal = false;
     let selectedStatus = 'active';
 
@@ -155,6 +151,8 @@
             await updateBalances();
         } catch (error) {
             showCustomToast('Failed to fetch campaigns', 5000, 'danger');
+        } finally {
+            loading = false;
         }
     }
 
@@ -357,7 +355,7 @@
     <div class="container mx-auto px-0 max-w-6xl">
         <div class="text-center mb-12">
             <h1 class="text-4xl font-bold text-white mb-4">Contribute</h1>
-            <p class="text-gray-400 text-lg max-w-2xl mx-auto">Discover and participate in the latest blockchain projects across Ergo and Cardano networks.</p>
+            <p class="text-gray-400 text-lg max-w-2xl mx-auto">Discover and participate in the latest blockchain projects across Ergo network.</p>
         </div>
 
     <!-- Add this after Network Tabs -->
@@ -387,6 +385,9 @@
         Ended
     </button>
 </div>
+{#if loading}
+    <Loading />
+{:else}
 <!-- Main Grid -->
 <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
     {#each getFilteredCampaigns(campaigns) as campaign (campaign.id)}
@@ -810,6 +811,7 @@
         {/if}
     {/each}
 </div>
+{/if}
 </div>
 </div>
 
@@ -852,28 +854,13 @@
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
     }
 
-    .active-tab {
-        background-color: var(--main-color);
-        color: white;
-    }
-
-    .inactive-tab {
-        background-color: var(--forms-bg);
-        color: rgb(209 213 219) !important;
-    }
-
-    .inactive-tab:hover {
-        background-color: var(--main-color);
-        color: var(--background) !important;
-    }
-
     :global(.campaign-card) {
         background-color: var(--forms-bg);
     }
 
     .active-status {
         background-color: var(--main-color);
-        color: white;
+        color: var(--background);
     }
 
     .inactive-status {
