@@ -11,6 +11,7 @@
     import { connected_wallet_address, selected_wallet } from '$lib/store/store.ts';
     import { updateTempBoxes, fetchBoxes, getBlockHeight } from '$lib/api-explorer/explorer.ts';
     import { getCommonBoxIds, showCustomToast } from '$lib/utils/utils.js';
+    import ErgopayModal from '$lib/components/common/ErgopayModal.svelte';
     import { get } from 'svelte/store';
   
     let currentStep = 1;
@@ -112,7 +113,7 @@
         });
         
         submitSuccess = true;
-        window.location.href = '/campaigns';
+        window.location.href = '/contribute';
       } catch (error) {
         submitError = 'Error submitting campaign data. Please try again later.';
         console.error('Error submitting campaign data:', error);

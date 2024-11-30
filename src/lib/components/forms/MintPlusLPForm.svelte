@@ -1,6 +1,14 @@
 <script lang="ts">
     import { selected_wallet, connected_wallet_address } from "$lib/store/store.ts";
 
+    let useConnectedWallet = true;
+    // Add reactive statement to ensure applicant is always set
+    $: {
+        if (useConnectedWallet) {
+            data.applicant = $connected_wallet_address;
+        }
+        console.log("Current applicant:", data.applicant);
+    }
     export let data = {
         // Campaign specific fields
         mint_new_token: "t",
@@ -21,7 +29,7 @@
         lp_fee: 3,
         
         // System fields
-        applicant: $connected_wallet_address,
+        applicant: $selected_wallet,
         status_phase: "inactive"
     };
 
