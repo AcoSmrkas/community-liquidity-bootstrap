@@ -4,6 +4,7 @@
   import { nFormatter } from '$lib/utils/utils.js';
   import { onMount } from 'svelte';
   import axios from "axios";
+  import CampaignAlert from '$lib/components/ui/CampaignAlert.svelte';
 
   let walletConnected = false;
   let campaigns = [];
@@ -117,7 +118,7 @@
 </script>
 
 <div class="container mx-auto px-4 mt-5">
-  <!-- Hero Section -->
+  <!-- Hero Section --> 
   <section class="py-20 text-center">
     <div class="max-w-4xl mx-auto">
       <h1 class="text-5xl md:text-6xl font-bold text-white mb-6" style="font-family:'Manrope';">
@@ -136,7 +137,7 @@
       </div>
     </div>
   </section>
-
+  <CampaignAlert />
   <!-- Stats Section -->
   <section class="pb-[75px]">
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

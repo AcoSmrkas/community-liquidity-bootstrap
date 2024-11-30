@@ -21,7 +21,8 @@
     import { API_HOST, MEW_FEE_PERCENTAGE } from '$lib/common/const.js';
     import axios from "axios";
     import { BigNumber } from 'bignumber.js';
-
+    import CampaignAlert from '$lib/components/ui/CampaignAlert.svelte';
+    import CampaignFilter from './CampaignFilter.svelte';
 
     // Component state
     let showErgopayModal = false;
@@ -34,7 +35,7 @@
     let campaignBalances = {};
     let loading = true;
     let showCreateModal = false;
-    let selectedStatus = 'active';
+
 
     export let endDate;
     export let startDate;
@@ -130,13 +131,25 @@
         );
         return contribution ? contribution.amount : 0;
     }
+//Add these to your existing script section where other state variables are defined
+let selectedStatus = 'active';
+let selectedType = 'all';
 
-    function getFilteredCampaigns(campaigns) {
-        return campaigns.filter(c => 
-            c.network === activeTab && 
-            getCampaignStatus(c) === selectedStatus
-        );
-    }
+// Update your getFilteredCampaigns function
+function getFilteredCampaigns(campaigns) {
+    return campaigns.filter(c => 
+        c.network === activeTab && 
+        getCampaignStatus(c) === selectedStatus &&
+        (selectedType === 'all' || c.campaign_type === selectedType)
+    );
+}
+
+// Add this handler
+function handleFilterChange(event) {
+    const { status, type } = event.detail;
+    selectedStatus = status;
+    selectedType = type;
+}
 
     // Campaign Management
     async function fetchCampaigns() {
@@ -351,40 +364,23 @@
 
 
 <CreateCampaignModal bind:showModal={showCreateModal} />
+
 <div class="container top-margin text-white mb-5">
+    
     <div class="container mx-auto px-0 max-w-6xl">
+        
         <div class="text-center mb-12">
             <h1 class="text-4xl font-bold text-white mb-4">Contribute</h1>
             <p class="text-gray-400 text-lg max-w-2xl mx-auto">Discover and participate in the latest blockchain projects across Ergo network.</p>
         </div>
+        <CampaignAlert />
+        <CampaignFilter 
+        selectedStatus={selectedStatus}
+        selectedType={selectedType}
+        on:filterChange={handleFilterChange}
+    />
+    
 
-    <!-- Add this after Network Tabs -->
-<div class="flex justify-center space-x-4 mb-8">
-    <button
-        class="px-4 py-2 rounded-lg font-medium transition-colors"
-        class:active-status={selectedStatus === 'active'}
-        class:inactive-status={selectedStatus !== 'active'}
-        on:click={() => selectedStatus = 'active'}
-    >
-        Active
-    </button>
-    <button
-        class="px-4 py-2 rounded-lg font-medium transition-colors"
-        class:active-status={selectedStatus === 'upcoming'}
-        class:inactive-status={selectedStatus !== 'upcoming'}
-        on:click={() => selectedStatus = 'upcoming'}
-    >
-        Upcoming
-    </button>
-    <button
-        class="px-4 py-2 rounded-lg font-medium transition-colors"
-        class:active-status={selectedStatus === 'ended'}
-        class:inactive-status={selectedStatus !== 'ended'}
-        on:click={() => selectedStatus = 'ended'}
-    >
-        Ended
-    </button>
-</div>
 {#if loading}
     <Loading />
 {:else}
