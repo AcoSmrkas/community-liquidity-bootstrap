@@ -108,6 +108,7 @@
         padding: 0.75rem;
         background-color: var(--forms-bg);
         border-radius: 0.5rem;
+        border-color: var(--main-color);
         margin-bottom: 1rem;
     }
 

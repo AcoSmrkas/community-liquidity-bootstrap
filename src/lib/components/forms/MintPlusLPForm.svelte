@@ -1,219 +1,82 @@
 <script lang="ts">
-    import { fetchTokenInfo } from '$lib/utils/tokenUtils';
     import { selected_wallet, connected_wallet_address } from "$lib/store/store.ts";
 
     export let data = {
-        // Base token fields
-        base_token_id: null,
-        base_name: "",
-        base_decimals: 0,
+        // Campaign specific fields
+        mint_new_token: "t",
+        base_name: "ERG",  // Always ERG for mint+lp
+        base_decimals: 9,  // Always 9 for ERG
         base_target_amount: 0,
         min_contribution: 0,
         max_contribution: 0,
-        base_icon_url: "",
         
-        // Second token fields
-        token_id: null,
+        // Token specific fields
         token_name: "",
+        token_description: "",
         token_decimals: 0,
-        token_target_amount: 0,
-        min_token: 0,
-        max_token: 0,
-        token_icon_url: "",
+        total_supply: 0,
         
-        // LP settings
+        // LP specific fields
         liquidity_info: "100%",
         lp_fee: 3,
-        token_description: ""
+        
+        // System fields
+        applicant: $connected_wallet_address,
+        status_phase: "inactive"
     };
 
-    let loadingBaseTokenInfo = false;
-    let loadingTokenInfo = false;
-    let baseTokenInfo = null;
-    let tokenInfo = null;
-
-    async function handleBaseTokenIdInput(event: Event) {
-        const tokenId = (event.target as HTMLInputElement).value.trim();
-        
-        if (tokenId && tokenId.length === 64) {
-            loadingBaseTokenInfo = true;
-            const fetchedToken = await fetchTokenInfo(tokenId);
-            loadingBaseTokenInfo = false;
-            
-            if (fetchedToken) {
-                baseTokenInfo = fetchedToken;
-                data.base_name = fetchedToken.name;
-                data.base_decimals = fetchedToken.decimals;
-                data.base_token_id = tokenId;
-            }
-        }
-    }
-
-    async function handleTokenIdInput(event: Event) {
-        const tokenId = (event.target as HTMLInputElement).value.trim();
-        
-        if (tokenId && tokenId.length === 64) {
-            loadingTokenInfo = true;
-            const fetchedToken = await fetchTokenInfo(tokenId);
-            loadingTokenInfo = false;
-            
-            if (fetchedToken) {
-                tokenInfo = fetchedToken;
-                data.token_name = fetchedToken.name;
-                data.token_decimals = fetchedToken.decimals;
-                data.token_id = tokenId;
-            }
-        }
-    }
+    const lpOptions = ["100%", "75%", "50%"];
 </script>
 
 <div class="space-y-6">
-    <!-- First Token Selection -->
+    <!-- Token Configuration -->
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">Token Name</label>
+            <input 
+                type="text" 
+                bind:value={data.token_name}
+                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
+                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
+                placeholder="Enter new token name"
+            />
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">Token Decimals</label>
+            <input 
+                type="number"
+                bind:value={data.token_decimals}
+                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
+                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
+                placeholder="e.g., 6"
+            />
+        </div>
+    </div>
+
+    <!-- Token Description -->
     <div>
-        <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">First Token ID</label>
-        <input 
-            type="text"
-            placeholder="Enter first token ID"
-            on:input={handleBaseTokenIdInput}
+        <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">Token Description</label>
+        <textarea 
+            bind:value={data.token_description}
             class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
                    focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
+            rows="3"
+            placeholder="Describe your token"
         />
-        
-        {#if loadingBaseTokenInfo}
-            <div class="mt-2 text-[var(--main-color)] text-sm">Loading token information...</div>
-        {:else if baseTokenInfo}
-            <div class="mt-3 bg-[var(--card-bg)] p-4 rounded-lg border border-[var(--border-color)]">
-                <h4 class="text-sm font-medium mb-2 text-[var(--main-color)]">First Token Info</h4>
-                <div class="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <span class="text-[var(--text-secondary)]">Name:</span>
-                        <span class="ml-2 text-[var(--text-primary)]">{baseTokenInfo.name}</span>
-                    </div>
-                    <div>
-                        <span class="text-[var(--text-secondary)]">Decimals:</span>
-                        <span class="ml-2 text-[var(--text-primary)]">{baseTokenInfo.decimals}</span>
-                    </div>
-                </div>
-            </div>
-        {/if}
     </div>
 
-    <!-- Second Token Selection -->
-    <div>
-        <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">Second Token ID</label>
-        <input 
-            type="text"
-            placeholder="Enter second token ID"
-            on:input={handleTokenIdInput}
-            class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
-                   focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
-        />
-        
-        {#if loadingTokenInfo}
-            <div class="mt-2 text-[var(--main-color)] text-sm">Loading token information...</div>
-        {:else if tokenInfo}
-            <div class="mt-3 bg-[var(--card-bg)] p-4 rounded-lg border border-[var(--border-color)]">
-                <h4 class="text-sm font-medium mb-2 text-[var(--main-color)]">Second Token Info</h4>
-                <div class="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <span class="text-[var(--text-secondary)]">Name:</span>
-                        <span class="ml-2 text-[var(--text-primary)]">{tokenInfo.name}</span>
-                    </div>
-                    <div>
-                        <span class="text-[var(--text-secondary)]">Decimals:</span>
-                        <span class="ml-2 text-[var(--text-primary)]">{tokenInfo.decimals}</span>
-                    </div>
-                </div>
-            </div>
-        {/if}
-    </div>
-
-    <!-- Target Amounts -->
+    <!-- Supply and LP Settings -->
     <div class="grid grid-cols-2 gap-6">
         <div>
-            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
-                First Token Target Amount {baseTokenInfo?.name ? `(${baseTokenInfo.name})` : ''}
-            </label>
+            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">Total Token Supply</label>
             <input 
                 type="number"
-                bind:value={data.base_target_amount}
+                bind:value={data.total_supply}
                 class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
                        focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
-                placeholder="First token amount"
+                placeholder="Total amount to mint"
             />
         </div>
-        <div>
-            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
-                Second Token Target Amount {tokenInfo?.name ? `(${tokenInfo.name})` : ''}
-            </label>
-            <input 
-                type="number"
-                bind:value={data.token_target_amount}
-                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
-                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
-                placeholder="Second token amount"
-            />
-        </div>
-    </div>
-
-    <!-- First Token Contribution Limits -->
-    <div class="grid grid-cols-2 gap-6">
-        <div>
-            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
-                Min Base Contribution {baseTokenInfo?.name ? `(${baseTokenInfo.name})` : ''}
-            </label>
-            <input 
-                type="number"
-                bind:value={data.min_contribution}
-                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
-                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
-                placeholder="Minimum"
-            />
-        </div>
-        <div>
-            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
-                Max Base Contribution {baseTokenInfo?.name ? `(${baseTokenInfo.name})` : ''}
-            </label>
-            <input 
-                type="number"
-                bind:value={data.max_contribution}
-                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
-                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
-                placeholder="Maximum"
-            />
-        </div>
-    </div>
-
-    <!-- Second Token Contribution Limits -->
-    <div class="grid grid-cols-2 gap-6">
-        <div>
-            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
-                Min Token Contribution {tokenInfo?.name ? `(${tokenInfo.name})` : ''}
-            </label>
-            <input 
-                type="number"
-                bind:value={data.min_token}
-                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
-                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
-                placeholder="Minimum"
-            />
-        </div>
-        <div>
-            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">
-                Max Token Contribution {tokenInfo?.name ? `(${tokenInfo.name})` : ''}
-            </label>
-            <input 
-                type="number"
-                bind:value={data.max_token}
-                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
-                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
-                placeholder="Maximum"
-            />
-        </div>
-    </div>
-
-    <!-- LP Settings -->
-    <div class="grid grid-cols-2 gap-6">
         <div>
             <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">Initial LP %</label>
             <select 
@@ -221,10 +84,24 @@
                 class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
                        focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
             >
-                <option value="100%">100%</option>
-                <option value="75%">75%</option>
-                <option value="50%">50%</option>
+                {#each lpOptions as option}
+                    <option value={option}>{option}</option>
+                {/each}
             </select>
+        </div>
+    </div>
+
+    <!-- ERG Target Amount and LP Fee -->
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">ERG Target Amount</label>
+            <input 
+                type="number"
+                bind:value={data.base_target_amount}
+                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
+                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
+                placeholder="Amount of ERG for LP"
+            />
         </div>
         <div>
             <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">LP Fee %</label>
@@ -235,6 +112,47 @@
                        focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
                 placeholder="e.g., 3"
             />
+        </div>
+    </div>
+
+    <!-- Contribution Limits -->
+    <div class="grid grid-cols-2 gap-6">
+        <div>
+            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">Min Contribution (ERG)</label>
+            <input 
+                type="number"
+                bind:value={data.min_contribution}
+                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
+                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
+                placeholder="Minimum ERG contribution"
+            />
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-2 text-[var(--main-color)]">Max Contribution (ERG)</label>
+            <input 
+                type="number"
+                bind:value={data.max_contribution}
+                class="w-full p-3 rounded-lg bg-[var(--forms-bg)] border border-[var(--border-color)] 
+                       focus:border-[var(--main-color)] focus:ring-1 focus:ring-[var(--main-color)] text-[var(--text-primary)]"
+                placeholder="Maximum ERG contribution"
+            />
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="bg-[var(--card-bg)] p-4 rounded-lg border border-[var(--border-color)]">
+        <div class="flex items-start gap-3">
+            <div class="p-2 bg-[var(--forms-bg)] rounded-lg">
+                <svg class="w-5 h-5 text-[var(--main-color)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <h3 class="font-medium mb-1 text-[var(--text-primary)]">Token Mint + LP Campaign</h3>
+                <p class="text-sm text-[var(--text-secondary)]">
+                    Your token will be minted and paired with ERG in a liquidity pool automatically after the campaign ends.
+                </p>
+            </div>
         </div>
     </div>
 </div>
