@@ -64,7 +64,9 @@
 		"axios": "^1.7.2",
 		"bignumber.js": "^9.1.2",
 		"json-bigint": "1.0.0",
+		"lightweight-charts": "^4.2.1",
 		"lucide-svelte": "^0.460.1",
+		"recharts": "^2.13.3",
 		"vite-plugin-wasm": "^3.3.0"
 	}
 }
