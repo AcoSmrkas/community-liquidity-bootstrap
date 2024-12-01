@@ -95,7 +95,7 @@
         <div class="token-section">
             <div class="flex items-center justify-between mb-2">
                 <div class="flex items-center gap-2">
-                    <div class="token-icon main-color">
+                    <div class="token-icon">
                         {#if secondaryAsset.iconUrl}
                             <img
                                 src={secondaryAsset.iconUrl}
