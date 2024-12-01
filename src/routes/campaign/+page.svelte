@@ -489,23 +489,7 @@ function calculatePercentageChange(data: any[], period: number): number {
                                 <p class="text-gray-400 text-sm">{campaign.description}</p>
                             </div>
 
-                            <AssetInfo
-                                asset={{
-                                    name: campaign.base_name,
-                                    iconUrl: campaign.base_icon_url,
-                                    tokenId: campaign.base_token_id,
-                                    currentAmount: campaign.base_raised || 0,
-                                    targetAmount: campaign.base_target_amount
-                                }}
-                                secondaryAsset={campaign.token_target_amount ? {
-                                    name: campaign.token_name,
-                                    iconUrl: campaign.token_icon_url,
-                                    tokenId: campaign.token_id,
-                                    currentAmount: campaign.token_raised || 0,
-                                    targetAmount: campaign.token_target_amount
-                                } : null}
-                                compact={true}
-                            />
+                            
                         </div>
                     </div>
 
