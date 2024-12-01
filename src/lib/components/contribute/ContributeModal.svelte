@@ -99,35 +99,34 @@
         const currentBalance = getCurrentBalance(isBaseToken);
         return currentBalance > 0;
     }
-
     function selectAsset(isBaseToken) {
-        if (isBaseToken) {
-            if (campaign.base_name === 'ERG') {
-                selectedAsset = {
-                    name: 'ERG',
-                    tokenId: null,
-                    icon: "https://spectrum.fi/logos/ergo/0000000000000000000000000000000000000000000000000000000000000000.svg",
-                    decimals: campaign.base_decimals
-                };
-            } else {
-                selectedAsset = {
-                    name: campaign.base_name,
-                    tokenId: campaign.base_token_id,
-                    icon: campaign.base_icon_url || "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ada/asset1cvqgx3z9u8l54amkyk894tr23gyx63c6wpd7r2.svg",
-                    decimals: campaign.base_decimals
-                };
-            }
+    if (isBaseToken) {
+        if (campaign.base_name === 'ERG') {
+            selectedAsset = {
+                name: 'ERG',
+                tokenId: null,  // null for ERG
+                icon: "https://spectrum.fi/logos/ergo/0000000000000000000000000000000000000000000000000000000000000000.svg",
+                decimals: campaign.base_decimals
+            };
         } else {
             selectedAsset = {
-                name: campaign.token_name,
-                tokenId: campaign.token_policy_id,
-                icon: campaign.token_icon_url || "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg",
-                decimals: campaign.token_decimals
+                name: campaign.base_name,
+                tokenId: campaign.base_token_id,
+                icon: campaign.base_icon_url || "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ada/asset1cvqgx3z9u8l54amkyk894tr23gyx63c6wpd7r2.svg",
+                decimals: campaign.base_decimals
             };
         }
-        step = 'amount';
+    } else {
+        selectedAsset = {
+            name: campaign.token_name,
+            tokenId: campaign.token_id,
+            icon: campaign.token_icon_url || "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg",
+            decimals: campaign.token_decimals
+        };
+        console.log("Selected second token:", selectedAsset);
     }
-
+    step = 'amount';
+}
     function goBack() {
         step = 'select';
         amount = '';
@@ -141,14 +140,25 @@
         new BigNumber(amount).lte(getMaxContribution(selectedAsset?.name === campaign.base_name)) &&
         new BigNumber(amount).plus(feeAmount).lte(getCurrentBalance(selectedAsset?.name === campaign.base_name));
 
-    function handleSubmit() {
-        if (!isValidAmount || loading) return;
-        
-        dispatch('contribute', {
-            amount: amount,
-            selectedAsset
-        });
+        function handleSubmit() {
+    if (!isValidAmount || loading) return;
+    
+    console.log("Submitting with asset:", selectedAsset);
+    
+    // Validate token information before dispatching
+    if (!selectedAsset || (selectedAsset.name !== 'ERG' && !selectedAsset.tokenId)) {
+        console.error("Invalid token configuration:", selectedAsset);
+        return;
     }
+
+    dispatch('contribute', {
+        amount: amount,
+        selectedAsset: {
+            ...selectedAsset,
+            tokenId: selectedAsset.name === 'ERG' ? null : selectedAsset.tokenId
+        }
+    });
+}
 
     function handleEscape(event) {
         if (event.key === 'Escape' && !loading) {
