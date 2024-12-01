@@ -71,7 +71,7 @@
             return userBalances.ERG;
         }
         
-        const tokenId = isBaseToken ? campaign.base_token_id : campaign.token_policy_id;
+        const tokenId = isBaseToken ? campaign.base_token_id : campaign.token_id;
         return userBalances.tokens[tokenId]?.amount || 0;
     }
 
@@ -90,7 +90,7 @@
             return "https://dex.mewfinance.com/ergo/swap"; // Just ERG swap page if they need ERG
         }
         
-        const tokenId = isBaseToken ? campaign.base_token_id : campaign.token_policy_id;
+        const tokenId = isBaseToken ? campaign.base_token_id : campaign.token_id;
         return `https://dex.mewfinance.com/ergo/swap?base=${baseTokenId}&quote=${tokenId}`;
     }
 
