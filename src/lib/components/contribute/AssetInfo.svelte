@@ -1,5 +1,7 @@
 <script>
     import { formatAddress, nFormatter } from '$lib/utils/utils.js';
+    import { onMount, onDestroy } from 'svelte';
+
     export let asset = {
         name: '',
         iconUrl: '',
@@ -12,15 +14,37 @@
     export let showTokenId = false;
     export let stats = [];
     export let startDate = '';
-    export let poolId = '';  // LP token ID / Pool ID
+    export let poolId = '';
     export let endDate = '';
-    export let campaignType = ''; // Add campaign type
-    export let totalSupply = 0;   // Add total supply for mintpluslp
-    export let initialPrice = 0;  // Add initial price for mintpluslp
+    export let campaignType = '';
+    export let totalSupply = 0;
+    export let initialPrice = 0;
+    export let onRefresh = () => {}; // New prop for refresh callback
+
+    let refreshInterval;
+    
+    onMount(() => {
+        // Set up the refresh interval
+        refreshInterval = setInterval(() => {
+            onRefresh();
+        }, 10000); // 10 seconds
+    });
+
+    onDestroy(() => {
+        // Clean up the interval when component is destroyed
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+        }
+    });
 
     $: progressPercentage = (asset.currentAmount / asset.targetAmount) * 100;
     $: secondaryProgressPercentage = secondaryAsset ? 
         (secondaryAsset.currentAmount / secondaryAsset.targetAmount) * 100 : 0;
+    
+    // Calculate estimated initial price
+    $: estimatedPrice = (campaignType === 'multiassetlp' || campaignType === 'ergassetlp') && 
+        secondaryAsset && secondaryAsset.targetAmount && asset.targetAmount ? 
+        (secondaryAsset.targetAmount / asset.targetAmount).toFixed(8) : null;
     
     function formatDateTime(dateTimeString) {
         if (!dateTimeString) return '';
@@ -148,6 +172,17 @@
                     <span>Target: {secondaryAsset.targetAmount.toLocaleString()}</span>
                 </div>
             </div>
+             <!-- Add Estimated Initial Price -->
+             {#if estimatedPrice}
+                <div class="price-estimate-container mt-3">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-yellow-400">Estimated Initial Price:</span>
+                        <span class="text-white">
+                            1 {asset.name} = {estimatedPrice} {secondaryAsset.name}
+                        </span>
+                    </div>
+                </div>
+            {/if}
         </div>
     {/if}
 {#if ['mintpluslp', 'multiassetlp'].includes(campaignType) && status === 'ended' && poolId}
@@ -230,7 +265,12 @@
         padding-top: 0.75rem;
         border-top: 1px solid rgba(255, 215, 0, 0.2);
     }
-
+ /* Styles for estimated price section */
+ .price-estimate-container {
+        background-color: rgba(0, 0, 0, 0.2);
+        padding: 1rem;
+        border-radius: 0.5rem;
+    }
     .pool-link-card {
         background-color: rgba(0, 0, 0, 0.2);
         padding: 0.75rem;
@@ -253,7 +293,10 @@
         font-weight: 500;
         word-break: break-all;
     }
-
+    /* Add new styles for estimated price section */
+    .bg-opacity-20 {
+        background-color: var(--forms-bg);
+    }
     @media (max-width: 480px) {
         .pool-value {
             font-size: 0.75rem;

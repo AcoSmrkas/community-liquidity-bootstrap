@@ -369,10 +369,7 @@ function handleFilterChange(event) {
     
     <div class="container mx-auto px-0 max-w-6xl">
         
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-bold text-white mb-4">Contribute</h1>
-            <p class="text-gray-400 text-lg max-w-2xl mx-auto">Discover and participate in the latest blockchain projects across Ergo network.</p>
-        </div>
+      
         <CampaignAlert />
         <CampaignFilter 
         selectedStatus={selectedStatus}
