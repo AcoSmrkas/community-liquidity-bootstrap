@@ -58,18 +58,28 @@
             {/if}
         </div>
 
-        <!-- MewFinance Link -->
-        {#if campaign.lp_tokenid}
-            <a
-                href={`https://dex.mewfinance.com/ergo/liquidity/${campaign.lp_tokenid}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="btn btn-primary py-2"
-            >
-                <span>View pool on Mew Finance</span>
-                
-            </a>
-        {/if}
+        <!-- Action Buttons -->
+        <div class="button-group">
+            {#if campaign.lp_tokenid}
+                <a
+                    href={`https://dex.mewfinance.com/ergo/liquidity/${campaign.lp_tokenid}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-primary py-2"
+                >
+                    <span>View pool on Mew Finance</span>
+                </a>
+            {/if}
+            
+            {#if campaign.campaign_type === 'mintpluslp' && campaign.lp_pool_id}
+                <a
+                    href={`/campaign?id=${campaign.id}`}
+                    class="btn btn-secondary py-2"
+                >
+                    <span>View Campaign Details</span>
+                </a>
+            {/if}
+        </div>
     </div>
 </div>
 
@@ -77,6 +87,22 @@
     a {
         color: var(--background) !important;
         border: unset !important;
+    }
+
+    .button-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    @media (min-width: 640px) {
+        .button-group {
+            flex-direction: row;
+        }
+    }
+
+    .btn-secondary {
+        background-color: var(--main-color-darker);
     }
 
     .results-container {
@@ -144,7 +170,4 @@
         color: white;
         word-break: break-all;
     }
-
-
-
 </style>
