@@ -5,6 +5,7 @@
     import AssetInfo from '$lib/components/contribute/AssetInfo.svelte';
     import StatusBadge from '$lib/components/contribute/StatusBadge.svelte';
     import CampaignTypeTag from '$lib/components/contribute/CampaignTypeTag.svelte';
+    import SimpleChart from './SimpleChart.svelte';
     
     let campaign = null;
     let loading = true;
@@ -525,11 +526,11 @@
 <div class="min-h-screen" style="background: var(--footer); margin-top: 100px;">
     <div class="container mx-auto p-4">
         {#if loading}
-            <div class="flex justify-center items-center h-96" style="background: var(--footer)">
+            <div class="flex justify-center items-center h-96" style="background: var(--forms-bg)">
                 <div class="text-white">Loading...</div>
             </div>
         {:else if campaign}
-            <div class="rounded-xl p-4 md:p-6 shadow-lg" style="background: var(--footer)">
+            <div class="rounded-xl p-4 md:p-6 shadow-lg" style="background: var(--forms-bg)">
                 <!-- Header Section -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-4">
                     <div>
@@ -564,39 +565,13 @@
                 </div>
 
                 <!-- Chart Section -->
-                <div class="mb-6">
-                    <div class="bg-[#1E1B2C] rounded-lg p-4 border border-gray-800">
-                        <div class="flex justify-between items-center mb-4">
-                            <div class="flex items-center gap-2">
-                                <span class="text-lg font-semibold text-white">Price Chart</span>
-                            </div>
-                            <div class="flex gap-2">
-                                {#each timeframes as period}
-                                    <button 
-                                        class="px-3 py-1.5 rounded text-sm transition-colors {
-                                            selectedTimeframe === period.id 
-                                                ? 'bg-blue-600 text-white' 
-                                                : 'text-gray-400 hover:bg-[#2A2543] border border-gray-700'
-                                        }"
-                                        on:click={() => selectedTimeframe = period.id}
-                                    >
-                                        {period.label}
-                                    </button>
-                                {/each}
-                            </div>
+                <div class="mb-8">
+                 
+                     
+                        <div class="relative w-full h-[550px] bg-[#1E1B2C] rounded-lg overflow-hidden">
+                            <SimpleChart data={chartData} />
                         </div>
-                        <div class="relative w-full h-[400px] bg-[#1E1B2C] rounded-lg overflow-hidden">
-                            <canvas 
-                                bind:this={chartCanvas}
-                                class="w-full h-full"
-                                on:mousemove={handleChartHover}
-                                on:mouseleave={() => {
-                                    hoverInfo = null;
-                                    drawChart();
-                                }}
-                            ></canvas>
-                        </div>
-                    </div>
+                    
                 </div>
 
                 <!-- Trade History and Holders Grid -->
@@ -604,9 +579,9 @@
                     <!-- Trade History -->
                     <div class="lg:col-span-3 bg-[#1E1B2C] rounded-lg p-4 border border-gray-800">
                         <h3 class="text-lg font-semibold text-white mb-4">Recent Trades</h3>
-                        <div class="overflow-x-auto">
+                        <div class="overflow-x-auto custom-scrollbar max-h-[500px]">
                             <table class="w-full min-w-[600px]">
-                                <thead>
+                                <thead class="sticky top-0 bg-[#1E1B2C] z-10">
                                     <tr class="text-gray-400 text-sm">
                                         <th class="text-left py-2 px-3">Type</th>
                                         <th class="text-right py-2 px-3">Total ERG</th>
@@ -691,7 +666,37 @@
         font-weight: 500;
         white-space: nowrap;
     }
+    .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    }
 
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 3px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* For Firefox */
+    @supports (scrollbar-color: auto) {
+        .custom-scrollbar {
+            scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.1);
+            scrollbar-width: thin;
+        }
+    }
     td {
         white-space: nowrap;
     }
