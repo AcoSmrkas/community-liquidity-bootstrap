@@ -51,7 +51,7 @@
         (secondaryAsset.currentAmount / secondaryAsset.targetAmount) * 100 : 0;
     $: estimatedPrice = (campaignType === 'multiassetlp' || campaignType === 'ergassetlp') && 
         secondaryAsset && secondaryAsset.targetAmount && asset.targetAmount ? 
-        (secondaryAsset.targetAmount / asset.targetAmount).toFixed(8) : null;
+        (secondaryAsset.targetAmount / asset.targetAmount).toFixed(3) : null;
     
     // Track value changes for animation
     $: {
@@ -164,8 +164,8 @@
                 </div>
             </div>
             <div class="flex justify-between text-sm text-yellow-400 mt-1">
-                <span>Raised: {formatCompactNumber(asset.currentAmount)}</span>
-                <span>Target: {formatCompactNumber(asset.targetAmount)}</span>
+                <span>Raised: {asset.currentAmount}</span>
+                <span>Target: {asset.targetAmount}</span>
             </div>
         </div>
     </div>
@@ -227,8 +227,8 @@
                     </div>
                 </div>
                 <div class="flex justify-between text-sm text-yellow-400 mt-1">
-                    <span>Raised: {formatCompactNumber(secondaryAsset.currentAmount)}</span>
-                    <span>Target: {formatCompactNumber(secondaryAsset.targetAmount)}</span>
+                    <span>Raised: {secondaryAsset.currentAmount}</span>
+                    <span>Target: {secondaryAsset.targetAmount}</span>
                 </div>
             </div>
 
