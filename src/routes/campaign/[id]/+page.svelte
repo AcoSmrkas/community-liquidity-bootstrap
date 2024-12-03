@@ -2,7 +2,7 @@
     import { onMount } from 'svelte';
     import { page } from '$app/stores';
     import { API_HOST } from '$lib/common/const.js';
-    import { nFormatter, formatDateTime } from '$lib/utils/utils.js';
+    import { nFormatter } from '$lib/utils/utils.js';
     import CampaignTypeTag from '$lib/components/contribute/CampaignTypeTag.svelte';
     import StatusBadge from '$lib/components/contribute/StatusBadge.svelte';
     import AssetInfo from '$lib/components/contribute/AssetInfo.svelte';
@@ -160,11 +160,11 @@
                         <div class="space-y-4">
                             <div>
                                 <div class="text-[var(--main-color)] text-sm">Start Date</div>
-                                <div class="text-white">{formatDateTime(selectedCampaign.start_date)}</div>
+                                <div class="text-white">(selectedCampaign.start_date)</div>
                             </div>
                             <div>
                                 <div class="text-[var(--main-color)] text-sm">End Date</div>
-                                <div class="text-white">{formatDateTime(selectedCampaign.end_date)}</div>
+                                <div class="text-white">(selectedCampaign.end_date)</div>
                             </div>
                         </div>
                     </div>
