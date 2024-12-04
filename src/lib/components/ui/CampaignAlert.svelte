@@ -46,7 +46,7 @@
     >
         <div class="flex items-center gap-4">
             <div class="p-2 rounded-lg bg-[var(--main-color)] text-white">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-6 h-6" fill="none" stroke="var(--background)" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                 </svg>
             </div>
@@ -110,19 +110,11 @@
                 <a 
                     href="/new"
                     class="inline-flex items-center px-8 py-4 text-lg font-bold text-[var(--background)] bg-[var(--main-color)] 
-                           rounded-xl hover:opacity-90 focus:ring-4 focus:outline-none focus:ring-[var(--main-color)]/20 
+                           rounded-xl focus:ring-4 focus:outline-none focus:ring-[var(--main-color)]/20 hover:bg-cyan-400
                            transition-all transform hover:-translate-y-0.5 shadow-lg"
+                    style="color: var(--background) !important;"
                 >
-                    <svg class="mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
                     Start Your Campaign
-                    <span class="relative">
-                        <span class="absolute -top-1 -right-6 flex h-3 w-3">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--background)] opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-3 w-3 bg-[var(--background)]"></span>
-                        </span>
-                    </span>
                     <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
                     </svg>

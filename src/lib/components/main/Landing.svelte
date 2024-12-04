@@ -228,17 +228,17 @@
     <!-- Status Tabs -->
     <div class="flex justify-center space-x-4 mb-8">
       <button class="px-4 py-2 rounded-lg text-sm font-medium transition-all
-                   {selectedStatus === 'active' ? 'bg-[var(--main-color)] text-white' : 'bg-[var(--forms-bg)] text-gray-300'}"
+                   {selectedStatus === 'active' ? 'bg-[var(--main-color)] text-bg' : 'bg-[var(--forms-bg)] text-gray-300'}"
               on:click={() => selectedStatus = 'active'}>
         Active
       </button>
       <button class="px-4 py-2 rounded-lg text-sm font-medium transition-all
-                   {selectedStatus === 'upcoming' ? 'bg-[var(--main-color)] text-white' : 'bg-[var(--forms-bg)] text-gray-300'}"
+                   {selectedStatus === 'upcoming' ? 'bg-[var(--main-color)] text-bg' : 'bg-[var(--forms-bg)] text-gray-300'}"
               on:click={() => selectedStatus = 'upcoming'}>
         Upcoming
       </button>
       <button class="px-4 py-2 rounded-lg text-sm font-medium transition-all
-                   {selectedStatus === 'ended' ? 'bg-[var(--main-color)] text-white' : 'bg-[var(--forms-bg)] text-gray-300'}"
+                   {selectedStatus === 'ended' ? 'bg-[var(--main-color)] text-bg' : 'bg-[var(--forms-bg)] text-gray-300'}"
               on:click={() => selectedStatus = 'ended'}>
         Ended
       </button>
