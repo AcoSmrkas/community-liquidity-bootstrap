@@ -60,9 +60,9 @@
 
         <!-- Action Buttons -->
         <div class="button-group">
-            {#if campaign.lp_tokenid}
+            {#if campaign.lp_pool_id}
                 <a
-                    href={`https://dex.mewfinance.com/ergo/liquidity/${campaign.lp_tokenid}`}
+                    href={`https://dex.mewfinance.com/ergo/liquidity/${campaign.lp_pool_id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     class="btn btn-primary py-2"
