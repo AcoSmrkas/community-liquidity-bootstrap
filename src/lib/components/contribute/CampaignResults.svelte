@@ -65,7 +65,7 @@
                     href={`https://dex.mewfinance.com/ergo/liquidity/${campaign.lp_pool_id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="btn btn-primary py-2"
+                    class="btn btn-primary py-2 w-100"
                 >
                     <span>View pool on Mew Finance</span>
                 </a>
@@ -74,7 +74,7 @@
             {#if campaign.campaign_type === 'mintpluslp' && campaign.lp_pool_id}
                 <a
                     href={`/campaign?id=${campaign.id}`}
-                    class="btn btn-secondary py-2"
+                    class="btn btn-secondary py-2 w-100"
                 >
                     <span>View Campaign Details</span>
                 </a>

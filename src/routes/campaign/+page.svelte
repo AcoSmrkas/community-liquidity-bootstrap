@@ -503,9 +503,6 @@
                     fetchPoolData(campaign.lp_pool_id);
                 }
             });
-
-            // Clear any pending timers
-            clearTimeout(resizeTimeoutId);
         };
     });
     // Watch for URL changes
