@@ -51,7 +51,7 @@
   <div class="flex relative items-center justify-between nav-container" style="  display: flex;
   justify-content: space-between;
   align-items: center; /* Optional: for vertical centering if needed */">
-    <a href="/" class="flex items-center gap-2" style="margin-right: auto;flex: 0 1 auto; /* Allow items to have their natural widths */">
+    <a href="https://mewfinance.com" class="flex items-center gap-2" style="margin-right: auto;flex: 0 1 auto; /* Allow items to have their natural widths */">
       <img class="h-[57px] relative" src="logo.png" alt="Logo">
     </a>
     <ul class="gap-x-4 d-none d-md-flex" style="position: absolute;
