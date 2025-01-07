@@ -390,7 +390,7 @@ function handleFilterChange(event) {
                 <div class="flex justify-between items-start mb-4">
                     <div>
                         <h2 class="text-2xl font-bold text-white mb-2">{campaign.title}</h2>
-                        <p class="text-gray-400 text-sm">{campaign.description}</p>
+                        <pre class="text-gray-400 text-sm" style="white-space: break-spaces;">{campaign.description}</pre>
                     </div>
                     <StatusBadge status="ended" />
                 </div>
@@ -408,10 +408,10 @@ function handleFilterChange(event) {
                         <div class="flex items-center gap-3 mb-2">
                             <h2 class="text-2xl font-bold text-white">{campaign.title}</h2>
                             <CampaignTypeTag type="mintpluslp" />
+                            <StatusBadge status={getCampaignStatus(campaign)} />
                         </div>
-                        <p class="text-gray-400 text-sm">{campaign.description}</p>
+                        <pre class="text-gray-400 text-sm" style="white-space: break-spaces;">{campaign.description}</pre>
                     </div>
-                    <StatusBadge status={getCampaignStatus(campaign)} />
                 </div>
         
                 {#if campaign.status_phase === 'ended'}
@@ -512,10 +512,10 @@ function handleFilterChange(event) {
                         <div class="flex items-center gap-3 mb-2">
                             <h2 class="text-2xl font-bold text-white">{campaign.title}</h2>
                             <CampaignTypeTag type="multiassetlp" />
+                            <StatusBadge status={getCampaignStatus(campaign)} />
                         </div>
-                        <p class="text-gray-400 text-sm">{campaign.description}</p>
+                        <pre class="text-gray-400 text-sm" style="white-space: break-spaces;">{campaign.description}</pre>
                     </div>
-                    <StatusBadge status={getCampaignStatus(campaign)} />
                 </div>
         
                 {#if campaign.status_phase === 'ended'}
@@ -616,10 +616,10 @@ function handleFilterChange(event) {
                         <div class="flex items-center gap-3 mb-2">
                             <h2 class="text-2xl font-bold text-white">{campaign.title}</h2>
                             <CampaignTypeTag type="ergassetlp" />
+                            <StatusBadge status={getCampaignStatus(campaign)} />
                         </div>
-                        <p class="text-gray-400 text-sm">{campaign.description}</p>
+                        <pre class="text-gray-400 text-sm" style="white-space: break-spaces;">{campaign.description}</pre>
                     </div>
-                    <StatusBadge status={getCampaignStatus(campaign)} />
                 </div>
         
                 {#if campaign.status_phase === 'ended'}
@@ -716,14 +716,14 @@ function handleFilterChange(event) {
             <!-- Crowdfund Campaign Card -->
             <div class="campaign-card relative rounded-xl p-6 hover:shadow-lg transition-all">
                 <div class="flex justify-between items-start mb-4">
-                    <div class="flex-1">
+                    <div class="flex-1 w-full">
                         <div class="flex items-center gap-3 mb-2">
                             <h2 class="text-2xl font-bold text-white">{campaign.title}</h2>
                             <CampaignTypeTag type="crowdfund" />
+                            <StatusBadge status={getCampaignStatus(campaign)} />
                         </div>
-                        <p class="text-gray-400 text-sm">{campaign.description}</p>
+                        <pre class="text-gray-400 text-sm" style="white-space: break-spaces;">{campaign.description}</pre>
                     </div>
-                    <StatusBadge status={getCampaignStatus(campaign)} />
                 </div>
 
                 <AssetInfo

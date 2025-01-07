@@ -74,15 +74,13 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 {#each campaignTypes as type, i}
                     <div 
-                        class="relative p-6 rounded-xl bg-[var(--forms-bg)] border-2 border-transparent hover:border-[var(--main-color)] transition-all duration-300 transform hover:-translate-y-1 cursor-pointer group"
-                        on:mouseenter={() => hoveredCard = i}
-                        on:mouseleave={() => hoveredCard = null}
+                        class="relative p-6 rounded-xl bg-[var(--forms-bg)] border-2 border-transparent group"
                     >
-                        <div class="flex items-center gap-4 mb-4">
+                        <div class="flex items-center gap-1 mb-4">
                             <div class="p-2 rounded-lg bg-[var(--main-color)]/10">
                                 <span class="text-3xl">{type.icon}</span>
                             </div>
-                            <h4 class="text-lg font-bold text-[var(--text-primary)] group-hover:text-[var(--main-color)] transition-colors">{type.title}</h4>
+                            <h4 class="text-lg font-bold text-[var(--text-primary)]">{type.title}</h4>
                         </div>
                         <p class="text-[var(--text-secondary)] mb-4">
                             {type.description}
