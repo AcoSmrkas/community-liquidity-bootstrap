@@ -1,11 +1,13 @@
 <script lang="ts">
   import { HERO_DESCRIPTION, LOGO_TEXT, API_HOST } from '$lib/common/const.js';
+  import SuccessfulCampaigns from './SuccessfulCampaigns.svelte';
   import { connected_wallet_address } from "$lib/store/store";
   import { nFormatter } from '$lib/utils/utils.js';
   import { onMount } from 'svelte';
   import axios from "axios";
   import CampaignAlert from '$lib/components/ui/CampaignAlert.svelte';
-
+  import Metrics from './metrics.svelte';
+  
   let walletConnected = false;
   let campaigns = [];
   let loading = true;
@@ -138,215 +140,53 @@
     </div>
   </section>
   <CampaignAlert />
-  <!-- Stats Section -->
-  <section class="pb-[75px]">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div class="stat-card p-[30px]">
-        <h3 class="text-2xl font-bold text-main mb-2">
-          {loading ? '...' : stats.totalCampaigns}
-        </h3>
-        <p class="text-gray-300">Total Campaigns</p>
-        <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
-          <div>
-            <span class="text-main">{stats.campaignTypes.crowdfund}</span> Crowdfund
-          </div>
-          <div>
-            <span class="text-main">{stats.campaignTypes.mintpluslp}</span> Mint+LP
-          </div>
-          <div>
-            <span class="text-main">{stats.campaignTypes.multiassetlp}</span> Multi LP
-          </div>
-          <div>
-            <span class="text-main">{stats.campaignTypes.ergassetlp}</span> ERG+LP
-          </div>
-        </div>
+  <Metrics/>
+
+<!-- Campaign Types Section -->
+<section class="pb-[75px]">
+  <h2 class="text-3xl font-bold text-white text-center mb-12">Campaign Types</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+    <div class="process-card p-[30px]">
+      <div class="text-center mb-4">
+        <span class="px-3 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border-[0.5px] border-blue-500/20">
+          Crowdfund
+        </span>
       </div>
-      <div class="stat-card p-[30px]">
-        <h3 class="text-2xl font-bold text-main mb-2">
-          {loading ? '...' : `${nFormatter(stats.totalErgoTarget)} ERG`}
-        </h3>
-        <p class="text-gray-300">Total ERG Target</p>
-      </div>
-      <div class="stat-card p-[30px]">
-        <h3 class="text-2xl font-bold text-main mb-2">
-          {loading ? '...' : `${nFormatter(stats.totalCardanoTarget)} ADA`}
-        </h3>
-        <p class="text-gray-300">Total ADA Target</p>
-      </div>
-      <div class="stat-card p-[30px]">
-        <h3 class="text-2xl font-bold text-main mb-2">2</h3>
-        <p class="text-gray-300">Supported Chains</p>
-      </div>
+      <p class="text-gray-300">Simple fundraising campaigns in ERG or custom tokens with customizable contribution limits.</p>
     </div>
-  </section>
-
-  <div id="how-it-works" class="relative top-[-95px]"></div>
-
-  <!-- Campaign Types Section -->
-  <section class="pb-[75px]">
-    <h2 class="text-3xl font-bold text-white text-center mb-12">Campaign Types</h2>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-      <div class="process-card p-[30px]">
-        <div class="text-center mb-4">
-          <span class="px-3 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-400 border-[0.5px] border-blue-500/20">
-            Crowdfund
-          </span>
-        </div>
-        <p class="text-gray-300">Simple fundraising campaigns in ERG or custom tokens with customizable contribution limits.</p>
+    <div class="process-card p-[30px]">
+      <div class="text-center mb-4">
+        <span class="px-3 py-1 rounded text-xs font-medium bg-cyan-500/20 text-cyan-400 border-[0.5px] border-cyan-500/20">
+          Mint+LP
+        </span>
       </div>
-      <div class="process-card p-[30px]">
-        <div class="text-center mb-4">
-          <span class="px-3 py-1 rounded text-xs font-medium bg-cyan-500/20 text-cyan-400 border-[0.5px] border-cyan-500/20">
-            Mint+LP
-          </span>
-        </div>
-        <p class="text-gray-300">Mint new tokens and automatically create a liquidity pool paired with ERG.</p>
-      </div>
-      <div class="process-card p-[30px]">
-        <div class="text-center mb-4">
-          <span class="px-3 py-1 rounded text-xs font-medium bg-yellow-500/20 text-yellow-400 border-[0.5px] border-yellow-500/20">
-            Multi LP
-          </span>
-        </div>
-        <p class="text-gray-300">Create liquidity pools between any two tokens with balanced contributions.</p>
-      </div>
-      <div class="process-card p-[30px]">
-        <div class="text-center mb-4">
-          <span class="px-3 py-1 rounded text-xs font-medium bg-purple-500/20 text-purple-400 border-[0.5px] border-purple-500/20">
-            ERG+LP
-          </span>
-        </div>
-        <p class="text-gray-300">Create liquidity pools between ERG and any token with customizable ratios.</p>
-      </div>
+      <p class="text-gray-300">Mint new tokens and automatically create a liquidity pool paired with ERG.</p>
     </div>
-  </section>
-
-  <!-- Featured Campaigns Section -->
-  <section class="pb-5">
-    <h2 class="text-3xl font-bold text-white text-center mb-5">Featured campaigns</h2>
-    
-    <!-- Status Tabs -->
-    <div class="flex justify-center space-x-4 mb-8">
-      <button class="px-4 py-2 rounded-lg text-sm font-medium transition-all
-                   {selectedStatus === 'active' ? 'bg-[var(--main-color)] text-bg' : 'bg-[var(--forms-bg)] text-gray-300'}"
-              on:click={() => selectedStatus = 'active'}>
-        Active
-      </button>
-      <button class="px-4 py-2 rounded-lg text-sm font-medium transition-all
-                   {selectedStatus === 'upcoming' ? 'bg-[var(--main-color)] text-bg' : 'bg-[var(--forms-bg)] text-gray-300'}"
-              on:click={() => selectedStatus = 'upcoming'}>
-        Upcoming
-      </button>
-      <button class="px-4 py-2 rounded-lg text-sm font-medium transition-all
-                   {selectedStatus === 'ended' ? 'bg-[var(--main-color)] text-bg' : 'bg-[var(--forms-bg)] text-gray-300'}"
-              on:click={() => selectedStatus = 'ended'}>
-        Ended
-      </button>
-    </div>
-
-    {#if loading}
-      <div class="text-center text-gray-300">Loading campaigns...</div>
-    {:else if filteredCampaigns.length === 0}
-      <div class="text-center text-gray-300">No {selectedStatus} campaigns found</div>
-    {:else}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[30px]">
-        {#each filteredCampaigns as campaign (campaign.id)}
-          <div class="campaign-card p-[30px] relative">
-            <!-- Campaign Type Badge -->
-            <div class="absolute top-4 right-4">
-              {#if campaign.campaign_type === 'crowdfund'}
-                <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-blue-500/20 text-blue-400 border-[0.5px] border-blue-500/20">
-                  Fund
-                </span>
-              {:else if campaign.campaign_type === 'mintpluslp'}
-                <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-cyan-500/20 text-cyan-400 border-[0.5px] border-cyan-500/20">
-                  Mint+LP
-                </span>
-              {:else if campaign.campaign_type === 'multiassetlp'}
-                <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-yellow-500/20 text-yellow-400 border-[0.5px] border-yellow-500/20">
-                  Multi LP
-                </span>
-              {:else if campaign.campaign_type === 'ergassetlp'}
-                <span class="px-2 py-0.5 rounded text-[10px] font-medium bg-purple-500/20 text-purple-400 border-[0.5px] border-purple-500/20">
-                  ERG+LP
-                </span>
-              {/if}
-            </div>
-
-            <h3 class="text-xl font-bold text-primary mb-4">{campaign.title}</h3>
-            <p class="text-gray-300 text-sm mb-6">{campaign.description}</p>
-            
-            <!-- Token Info -->
-            <div class="space-y-4 mb-6">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-2">
-                  <img 
-                    src={campaign.base_name === 'ERG' 
-                      ? "https://spectrum.fi/logos/ergo/0000000000000000000000000000000000000000000000000000000000000000.svg"
-                      : campaign.base_icon_url || "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg"} 
-                    alt={campaign.base_name} 
-                    class="w-6 h-6"
-                    on:error={(e) => e.target.src = "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg"}
-                  />
-                  <span class="text-white">
-                    {nFormatter(campaign.base_target_amount)} 
-                    <span class="text-primary font-bold">{campaign.base_name}</span>
-                  </span>
-                </div>
-              </div>
-                      {#if campaign.token_name}
-                          <div class="flex items-center justify-between">
-                              <div class="flex items-center space-x-2">
-                                  <img 
-                                      src={campaign.token_icon_url || "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg"} 
-                                      alt={campaign.token_name}
-                                      class="w-6 h-6"
-                                      on:error={(e) => e.target.src = "https://raw.githubusercontent.com/spectrum-finance/token-logos/master/logos/ergo/token.svg"}
-                                  />
-                                  <span class="text-white">
-                                      {nFormatter(campaign.token_target_amount)} 
-                                      <span class="text-primary font-bold">{campaign.token_name}</span>
-                                  </span>
-                              </div>
-                          </div>
-                      {/if}
-                  </div>
-
-                  <!-- Time Info -->
-<div class="mt-6 text-sm text-[var(--text-secondary)]">
-  {#if campaign.status === 'upcoming'}
-      Starts in {getTimeLeft(campaign.start_date)}
-  {:else if campaign.status === 'active'}
-      Ends in {getTimeLeft(campaign.end_date)}
-  {:else}
-      Ended {getTimeAgo(campaign.end_date)}
-  {/if}
-</div>
-
-                  <!-- Action Button -->
-<a href="/contribute" 
-class="relative btn mt-4 w-full block text-center px-4 py-2 rounded-lg transition-all hover:opacity-90 
-       {campaign.status === 'active' ? 'btn-primary' : 'btn-secondary'}" 
-style="color: var(--background) !important;">
- {#if campaign.status === 'upcoming'}
-     View Details
- {:else if campaign.status === 'active'}
-     Contribute Now
- {:else}
-     View Results
- {/if}
-</a>
-              </div>
-          {/each}
+    <div class="process-card p-[30px]">
+      <div class="text-center mb-4">
+        <span class="px-3 py-1 rounded text-xs font-medium bg-yellow-500/20 text-yellow-400 border-[0.5px] border-yellow-500/20">
+          Multi LP
+        </span>
       </div>
-  {/if}
-
-  <div class="text-center mt-[60px]">
-      <a href="/contribute" class="btn-primary px-8 py-3 rounded-lg text-lg font-medium transition-all hover:opacity-90" style="color: var(--background) !important;">
-          View All Campaigns
-      </a>
+      <p class="text-gray-300">Create liquidity pools between any two tokens with balanced contributions.</p>
+    </div>
+    <div class="process-card p-[30px]">
+      <div class="text-center mb-4">
+        <span class="px-3 py-1 rounded text-xs font-medium bg-purple-500/20 text-purple-400 border-[0.5px] border-purple-500/20">
+          ERG+LP
+        </span>
+      </div>
+      <p class="text-gray-300">Create liquidity pools between ERG and any token with customizable ratios.</p>
+    </div>
   </div>
 </section>
+  <div id="how-it-works" class="relative top-[-95px]"></div>
+
+  <SuccessfulCampaigns/>
+  
+
+
+
 </div>
 <style>
   .btn-primary {
