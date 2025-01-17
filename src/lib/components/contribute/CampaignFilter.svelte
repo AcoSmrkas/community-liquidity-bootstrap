@@ -6,6 +6,25 @@
     export let selectedStatus;
     export let selectedType;
     
+    // Helper function to determine campaign status based on UTC dates
+    function getCampaignStatus(startDate, endDate) {
+        const now = new Date();
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        
+        // Ensure we're comparing in UTC
+        const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 
+                               now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
+        const startUTC = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate(), 
+                                 start.getUTCHours(), start.getUTCMinutes(), start.getUTCSeconds());
+        const endUTC = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate(), 
+                               end.getUTCHours(), end.getUTCMinutes(), end.getUTCSeconds());
+
+        if (nowUTC < startUTC) return 'upcoming';
+        if (nowUTC > endUTC) return 'ended';
+        return 'active';
+    }
+    
     const statusFilters = [
         { id: 'active', label: 'Active' },
         { id: 'upcoming', label: 'Upcoming' },
@@ -22,12 +41,20 @@
 
     function handleStatusChange(newStatus) {
         selectedStatus = newStatus;
-        dispatch('filterChange', { status: selectedStatus, type: selectedType });
+        dispatch('filterChange', { 
+            status: selectedStatus, 
+            type: selectedType,
+            getCampaignStatus // Pass the helper function to parent
+        });
     }
 
     function handleTypeChange(newType) {
         selectedType = newType;
-        dispatch('filterChange', { status: selectedStatus, type: selectedType });
+        dispatch('filterChange', { 
+            status: selectedStatus, 
+            type: selectedType,
+            getCampaignStatus // Pass the helper function to parent
+        });
     }
 
     $: statusLabel = statusFilters.find(f => f.id === selectedStatus)?.label;
@@ -103,14 +130,14 @@
 </div>
 
 <style>
-   .filter-container {
-    width: 100%;
-    padding: 0.75rem;
-    background-color: var(--forms-bg);
-    border-radius: 0.5rem;
-    border: 1px solid var(--main-color);
-    margin-bottom: 1rem;
-}
+    .filter-container {
+        width: 100%;
+        padding: 0.75rem;
+        background-color: var(--forms-bg);
+        border-radius: 0.5rem;
+        border: 1px solid var(--main-color);
+        margin-bottom: 1rem;
+    }
 
     .filter-select {
         width: 100%;

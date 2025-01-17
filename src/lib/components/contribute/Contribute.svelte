@@ -98,20 +98,31 @@
     }
 
     function getCampaignStatus(campaign) {
-        const now = new Date().getTime();
-        const startDate = campaign.start_date ? new Date(campaign.start_date).getTime() : null;
-        const endDate = new Date(campaign.end_date).getTime();
-        
-        if (campaign.status_phase === 'ended' || campaign.status_phase === 'inactive') {
-            return campaign.status_phase;
-        }
-        
-        if (startDate && now < startDate) return 'upcoming';
-        if (now > endDate) return 'ended';
-        if ((!startDate || now >= startDate) && now <= endDate) return 'active';
-        
-        return campaign.status_phase || 'inactive';
+    // First check if backend says it's ended
+    if (campaign.status_phase === 'ended') {
+        return 'ended';
     }
+
+    const now = new Date();
+    const startDate = campaign.start_date ? new Date(campaign.start_date) : null;
+    const endDate = new Date(campaign.end_date);
+    
+    // Convert all to UTC timestamps
+    const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 
+                           now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
+    const startUTC = startDate ? Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 
+                                        startDate.getUTCDate(), startDate.getUTCHours(), 
+                                        startDate.getUTCMinutes(), startDate.getUTCSeconds()) : null;
+    const endUTC = Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate(), 
+                           endDate.getUTCHours(), endDate.getUTCMinutes(), endDate.getUTCSeconds());
+    
+    // Time-based checks only if not ended in backend
+    if (startUTC && nowUTC < startUTC) return 'upcoming';
+    if (nowUTC > endUTC) return 'ended';
+    if ((!startUTC || nowUTC >= startUTC) && nowUTC <= endUTC) return 'active';
+    
+    return 'inactive';
+}
 
     function calculateProgress(contribution, targetAmount) {
         if (!targetAmount || !contribution) return 0;
