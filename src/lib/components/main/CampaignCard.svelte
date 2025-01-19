@@ -430,7 +430,7 @@
 }
 
 .status-badge {
-    background: var(--main-color-buttons);
+    background: var(--main-color);
     color: var(--background);
     padding: 0.25rem 0.75rem;
     border-radius: 9999px;
@@ -536,7 +536,7 @@
 }
 
 .value.buy {
-    color: var(--main-color-buttons);
+    color: var(--main-color);
 }
 
 .value.sell {
