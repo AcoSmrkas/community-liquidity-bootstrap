@@ -8,6 +8,7 @@
   import CampaignCard from './CampaignCard.svelte';
   import TokenPrices from './TokenPrices.svelte';
   import Dash from './dash.svelte';
+  import TradeFeed from './TradeFeed.svelte';
 
   let showModal = false;
   let connectedWalletAddress = '';
@@ -61,6 +62,7 @@
     </div>
   </section>
 <Dash/>
+<TradeFeed />
 <TokenPrices/>
   <!-- Campaigns Section -->
   <section class="mt-10">
