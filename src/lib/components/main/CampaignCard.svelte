@@ -90,18 +90,38 @@
             minute: '2-digit'
         });
     }
-
     function getFilteredTraders(traders: Trader[] = [], type: CampaignType): Trader[] {
         if (!traders?.length) return [];
         
         const typeInfo = CAMPAIGN_TYPES[type] || CAMPAIGN_TYPES['TOTAL_VOLUME'];
-        if (type === 'HIGHEST_SELLER') {
-            return [...traders].filter(t => t.usd_received > 0).sort((a, b) => typeInfo.getLeaderValue(b) - typeInfo.getLeaderValue(a));
-        } else {
-            return [...traders].sort((a, b) => typeInfo.getLeaderValue(b) - typeInfo.getLeaderValue(a));
+        
+        switch(type) {
+            case 'HIGHEST_SELLER':
+                // Only include traders who have sold (usd_received > 0)
+                return [...traders]
+                    .filter(t => t.usd_received > 0)
+                    .sort((a, b) => (b.usd_received || 0) - (a.usd_received || 0));
+            
+            case 'HIGHEST_BUYER':
+                // Only include traders who have bought (usd_spent > 0)
+                return [...traders]
+                    .filter(t => t.usd_spent > 0)
+                    .sort((a, b) => (b.usd_spent || 0) - (a.usd_spent || 0));
+            
+            case 'TRADE_COUNT':
+                // Sort by total trades
+                return [...traders]
+                    .filter(t => t.trade_count > 0)
+                    .sort((a, b) => (b.trade_count || 0) - (a.trade_count || 0));
+            
+            case 'TOTAL_VOLUME':
+            default:
+          
+                return [...traders]
+                    .filter(t => t.total_volume > 0)
+                    .sort((a, b) => (b.total_volume || 0) - (a.total_volume || 0));
         }
     }
-
 
 
     async function refreshStats() {
